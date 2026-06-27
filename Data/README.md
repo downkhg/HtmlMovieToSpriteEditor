@@ -13,6 +13,9 @@
 # ⚠️ 캐릭터 리소스 이용 가이드라인 (Character Asset Usage Guidelines)
 
 > [!IMPORTANT]
+> **본 디렉토리(Data/)의 캐릭터 에셋은 루트 디렉토리의 Apache 2.0 라이센스 적용 대상에서 제외되며, 본 가이드라인의 규정을 최우선으로 따릅니다.**  
+> **The character assets in this directory (Data/) are excluded from the Apache License 2.0 applied to the repository root. These guidelines shall take precedence.**
+> 
 > 이 디렉토리 및 프로젝트 백업 디렉토리에 포함된 캐릭터 디자인 및 관련 스프라이트 리소스(예: `dajung` 캐릭터 데이터 및 이미지 에셋)를 사용할 때는 아래의 이용 규약을 반드시 준수해야 합니다.
 > You must comply with the following guidelines when using the character designs and related sprite assets in this directory.
 

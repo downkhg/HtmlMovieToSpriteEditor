@@ -101,13 +101,13 @@ HtmlMovieToSpriteEditor/
 ## 📄 라이센스 및 이용 약관 (License & Terms of Use)
 
 - **소스 코드 (Source Code)**: 이 프로젝트의 소스 코드는 **Apache License 2.0**에 따라 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.
-- **캐릭터 리소스 및 에셋 (Character Assets & Sprites)**: 본 저장소의 `Data/` 및 `Projects/` 디렉토리에 포함된 캐릭터 디자인 및 스프라이트 리소스(예: `dajung` 캐릭터 에셋)는 **상업적 이용 및 수정이 가능하나, 몇 가지 중요한 제한 사항(19금/혐오 표현 금지 등)이 적용**됩니다.
+- **캐릭터 리소스 및 에셋 (Character Assets & Sprites)**: 본 저장소의 `Data/` 및 `Projects/` 디렉토리에 포함된 캐릭터 디자인 및 스프라이트 리소스(예: `dajung` 캐릭터 에셋)는 **루트의 Apache 2.0 라이선스 적용 대상에서 제외되며**, **상업적 이용 및 수정이 가능하나, 몇 가지 중요한 제한 사항(19금/혐오 표현 금지 등)이 적용**됩니다.
   * 사용 시 **반드시 출처를 표기**해야 합니다. (예: `Character design and assets: [저작자명 또는 프로젝트 링크]`)
   * 성인물(NSFW/19금), 혐오 표현, 정치/종교적 선동 목적으로 캐릭터를 사용하는 것은 금지됩니다.
   * 자세한 허용 범위와 금지 조건은 각 폴더의 **[캐릭터 리소스 이용 가이드라인 (Data/README.md)](Data/README.md)** 및 **[Projects/README.md](Projects/README.md)** 문서를 반드시 참고해 주세요.
 
 - **Source Code**: The source code of this project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for details.
-- **Character Assets & Sprites**: The character designs and sprite assets in the `Data/` and `Projects/` directories (e.g., `dajung` assets) are free for commercial use and modification, but subject to **important restrictions (Prohibition of NSFW/Hate Speech)**.
+- **Character Assets & Sprites**: The character designs and sprite assets in the `Data/` and `Projects/` directories (e.g., `dajung` assets) are **excluded from the root's Apache License 2.0**, and are free for commercial use and modification subject to **important restrictions (Prohibition of NSFW/Hate Speech)**.
   * **Attribution is required**. (e.g., `Character design and assets by [Author Name or Project Link]`)
   * Use in adult (NSFW) content, hate speech, or political/religious propaganda is strictly prohibited.
   * Please refer to the **[Character Usage Guidelines (Data/README.md)](Data/README.md)** and **[Projects/README.md](Projects/README.md)** for complete terms.
