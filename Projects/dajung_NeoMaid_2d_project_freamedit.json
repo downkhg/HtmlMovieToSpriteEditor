@@ -1,0 +1,109 @@
+{
+  "characterId": "dajung_NeoMaid_2d",
+  "masterPrompt": "1girl, chibi, solo, pixel art, character sheet, reference sheet, game assets, retro game style, robot girl, cyber maid, maid outfit, black dress, white apron, pink trim, black hair, twintails, heart headband, headphones, purple eyes, smile, holographic screen, neon glow, thighhighs, garter straps, pouch, grid background, multiple views, walking animation, expression sheet",
+  "fps": 30,
+  "chromaKey": {
+    "enabled": true,
+    "color": "#008243",
+    "tolerance": 40,
+    "softEdge": 1.5
+  },
+  "crop": {
+    "x": 0.5,
+    "y": 0.5,
+    "size": 1
+  },
+  "states": [
+    {
+      "name": "idle",
+      "startFrame": 0,
+      "endFrame": 50,
+      "frameSkip": 2,
+      "loop": true,
+      "action": "standing breathing pose",
+      "status": "stable",
+      "statePrompt": "standing, idle breathing cycle, looking forward, calm expression",
+      "locked": true,
+      "customFrames": null
+    },
+    {
+      "name": "walk",
+      "startFrame": 70,
+      "endFrame": 97,
+      "frameSkip": 2,
+      "loop": true,
+      "action": "walking loop cycle",
+      "status": "stable",
+      "statePrompt": "walking animation, horizontal movement, legs alternating",
+      "locked": true,
+      "customFrames": null
+    },
+    {
+      "name": "run",
+      "startFrame": 112,
+      "endFrame": 145,
+      "frameSkip": 2,
+      "loop": true,
+      "action": "running sprint cycle",
+      "status": "experimental",
+      "statePrompt": "running fast, dynamic dash, forward momentum, hair blowing",
+      "locked": true,
+      "customFrames": null
+    },
+    {
+      "name": "jump",
+      "startFrame": 153,
+      "endFrame": 179,
+      "frameSkip": 2,
+      "loop": false,
+      "action": "mid-air jump pose",
+      "status": "stable",
+      "statePrompt": "jumping up, airborne, rising momentum, knees bent",
+      "locked": true,
+      "customFrames": null
+    },
+    {
+      "name": "attack",
+      "startFrame": 182,
+      "endFrame": 217,
+      "frameSkip": 2,
+      "loop": false,
+      "action": "melee strike motion",
+      "status": "stable",
+      "statePrompt": "swinging weapon, striking pose, slash effect, dynamic action stance",
+      "locked": true,
+      "customFrames": null
+    },
+    {
+      "name": "hurt",
+      "startFrame": 223,
+      "endFrame": 245,
+      "frameSkip": 2,
+      "loop": false,
+      "action": "damaged hit-stun frame",
+      "status": "experimental",
+      "statePrompt": "knocked back, taking damage, winced expression, hit impact effect",
+      "locked": true,
+      "customFrames": null
+    },
+    {
+      "name": "defeated",
+      "startFrame": 246,
+      "endFrame": 299,
+      "frameSkip": 2,
+      "loop": true,
+      "action": "downed defeated animation",
+      "status": "stable",
+      "statePrompt": "lying on ground, defeated, faint halo or stars, static frame after fall",
+      "locked": true,
+      "customFrames": null
+    }
+  ],
+  "audioSpecifications": {
+    "description": "Video & Audio Specifications: Isolated 2D game sprite animation loop video clip, green screen chroma key background.",
+    "bgmPolicy": "Strictly NO background music (No BGM)",
+    "sfxSync": "High-quality game sound effects (SFX) synchronized with the character's movement",
+    "audioQuality": "Clean distinct action audio design, transparent background ambient noise"
+  },
+  "videoName": "_ _characterId_dajung_Neo.mp4"
+}

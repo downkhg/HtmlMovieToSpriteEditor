@@ -1,0 +1,550 @@
+<!--
+프롬프터: downkhg@gmail.com
+모델: gemini
+에이전트: Antigravity
+마지막수정사항: 경로 및 파일 설명 정정, 프로젝트/캐릭터 리드미 분리 및 자동화 스킬 추가
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini & Imagen AI 이미지 생성 테스트기</title>
+  <script src="../Data/gemini.js"></script>
+  <style>
+    :root {
+      --bg-dark: #09090b;
+      --bg-card: #18181b;
+      --border: #27272a;
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --accent: #a855f7;
+      --accent-hover: #c084fc;
+      --success: #10b981;
+      --error: #ef4444;
+      --font-main: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      margin: 0;
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header {
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(to right, #a855f7, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--accent-hover);
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    input, select, textarea {
+      background-color: #09090b;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-main);
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .preset-btn {
+      background-color: #27272a;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .preset-btn:hover {
+      background-color: #3f3f46;
+      border-color: var(--accent);
+    }
+
+    .btn {
+      background-color: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover:not(:disabled) {
+      background-color: var(--accent-hover);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status-bar {
+      padding: 12px;
+      border-radius: 6px;
+      background-color: #09090b;
+      border-left: 4px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .status-bar.running {
+      border-left-color: var(--accent);
+      color: var(--accent-hover);
+    }
+
+    .status-bar.success {
+      border-left-color: var(--success);
+      color: var(--success);
+    }
+
+    .status-bar.error {
+      border-left-color: var(--error);
+      color: var(--error);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .preview-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #000;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      min-height: 300px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-box img {
+      max-width: 100%;
+      max-height: 450px;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    .empty-preview {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .download-btn {
+      margin-top: 12px;
+      width: 100%;
+      text-decoration: none;
+      background-color: var(--success);
+      color: #000;
+      font-weight: 700;
+      text-align: center;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: none;
+      box-sizing: border-box;
+      transition: background-color 0.2s;
+    }
+
+    .download-btn:hover {
+      background-color: #34d399;
+    }
+
+    .debug-log-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .debug-log-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .debug-log {
+      background-color: #09090b;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #e4e4e7;
+      max-height: 250px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>AI Image Generation Tester</h1>
+      <p class="subtitle">Google AI Studio API를 사용한 이미지 생성 자가 디버그 및 검증 도구</p>
+    </header>
+
+    <div class="card">
+      <h3 class="card-title">1. API 인증 및 모델 설정</h3>
+      <div class="form-group">
+        <label for="apiKey">Gemini API Key</label>
+        <input type="password" id="apiKey" placeholder="AIzaSy... 형태의 키를 입력해 주세요.">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="modelName">Model ID</label>
+          <select id="modelName">
+            <option value="gemini-2.5-flash-image" selected>gemini-2.5-flash-image (권장 - 최신 네이티브 이미지 모델)</option>
+            <option value="gemini-3.1-flash-image">gemini-3.1-flash-image (Gemini 3.1 이미지 모델)</option>
+            <option value="imagen-4.0-generate-001">imagen-4.0-generate-001 (Imagen 4.0 표준 모델 - :predict 방식)</option>
+            <option value="imagen-4.0-fast-generate-001">imagen-4.0-fast-generate-001 (Imagen 4.0 빠른 모델 - :predict 방식)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="apiVersion">API Version</label>
+          <input type="text" id="apiVersion" value="v1beta">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">2. 프롬프트 작성</h3>
+      <div class="form-group">
+        <label for="promptText">생성 프롬프트</label>
+        <textarea id="promptText" placeholder="여기에 이미지 생성 프롬프트를 입력하세요..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>추천 프롬프트 단축 프리셋</label>
+        <div class="presets">
+          <button class="preset-btn" data-prompt="A 2D pixel art warrior, character sheet, standing breathing pose, solid green screen #00ff00 background.">픽셀아트 전사</button>
+          <button class="preset-btn" data-prompt="Chibi anime style cute maid girl, twin black ponytails, purple maid dress, standing, solid green screen #00ff00 background, 2D game asset.">치비 메이드</button>
+          <button class="preset-btn" data-prompt="A red glossy apple, pixel art style, high contrast, clean transparent-ready borders, green screen background.">픽셀 사과</button>
+          <button class="preset-btn" data-prompt="Sci-fi cyberpunk soldier, pixel-perfect design, glowing neon cyan details, idle frame, solid green background.">사이버펑크 군인</button>
+        </div>
+      </div>
+
+      <button id="submitBtn" class="btn">🚀 이미지 생성하기</button>
+      <div class="status-bar" id="statusBar">상태: 대기 중</div>
+    </div>
+
+    <div class="workspace">
+      <!-- Left: Result image -->
+      <div class="card">
+        <h3 class="card-title">3. 생성 이미지 출력</h3>
+        <div class="preview-box" id="previewBox">
+          <span class="empty-preview" id="emptyText">생성된 결과물이 여기에 표시됩니다.</span>
+          <img id="resultImg" style="display: none;" alt="Generated Result">
+        </div>
+        <a id="downloadBtn" class="download-btn" href="#" download="generated_ai_image.png">💾 이미지 파일 다운로드</a>
+      </div>
+
+      <!-- Right: Debug info -->
+      <div class="card">
+        <h3 class="card-title">4. 실시간 통신 디버그 로그</h3>
+        
+        <div class="debug-log-container">
+          <div class="debug-log-title">API 요청 최종 URL 및 바인딩 명세</div>
+          <div class="debug-log" id="requestInfo">// 호출 URL 정보가 로깅되는 영역입니다.</div>
+        </div>
+
+        <div class="debug-log-container">
+          <div class="debug-log-title">API 응답 RAW JSON 패킷</div>
+          <div class="debug-log" id="responseInfo">// 서버 응답 원본 JSON 데이터가 로깅되는 영역입니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'antigravity_tester_api_key';
+
+    // Auto load API key from localStorage or gemini.js
+    document.addEventListener('DOMContentLoaded', () => {
+      let savedKey = localStorage.getItem(STORAGE_KEY);
+      if (!savedKey && window.geminiConfig && window.geminiConfig.apiKey) {
+        savedKey = window.geminiConfig.apiKey;
+      }
+      if (savedKey) {
+        document.getElementById('apiKey').value = savedKey;
+      }
+      
+      // Set default prompt to first preset
+      document.getElementById('promptText').value = document.querySelector('.preset-btn').dataset.prompt;
+    });
+
+    // Preset button event listeners
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('promptText').value = btn.dataset.prompt;
+      });
+    });
+
+    // Submit handler
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      const apiKey = document.getElementById('apiKey').value.trim();
+      const modelName = document.getElementById('modelName').value.trim();
+      const apiVersion = document.getElementById('apiVersion').value.trim();
+      const promptText = document.getElementById('promptText').value.trim();
+
+      const submitBtn = document.getElementById('submitBtn');
+      const statusBar = document.getElementById('statusBar');
+      const previewBox = document.getElementById('previewBox');
+      const emptyText = document.getElementById('emptyText');
+      const resultImg = document.getElementById('resultImg');
+      const downloadBtn = document.getElementById('downloadBtn');
+
+      const requestInfo = document.getElementById('requestInfo');
+      const responseInfo = document.getElementById('responseInfo');
+
+      if (!apiKey) {
+        statusBar.className = 'status-bar error';
+        statusBar.innerText = '상태: API 키 필요';
+        alert('Google AI Studio API Key를 먼저 입력해 주세요.');
+        return;
+      }
+
+      if (!promptText) {
+        statusBar.className = 'status-bar error';
+        statusBar.innerText = '상태: 프롬프트 비어있음';
+        alert('프롬프트를 입력해 주세요.');
+        return;
+      }
+
+      // Save key to local storage
+      localStorage.setItem(STORAGE_KEY, apiKey);
+
+      // Lock UI
+      submitBtn.disabled = true;
+      submitBtn.innerText = '생성 요청 중... (10~20초 소요)';
+      statusBar.className = 'status-bar running';
+      statusBar.innerText = '상태: 구글 서버와 통신 중...';
+
+      // Clear previous outputs
+      resultImg.style.display = 'none';
+      emptyText.style.display = 'block';
+      emptyText.innerText = '이미지를 불러오는 중...';
+      downloadBtn.style.display = 'none';
+
+      // Check if Imagen model
+      const isImagen = modelName.startsWith('imagen-');
+      const url = isImagen 
+        ? `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelName}:predict?key=${apiKey}`
+        : `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelName}:generateContent?key=${apiKey}`;
+
+      const payload = isImagen ? {
+        instances: [
+          {
+            prompt: promptText
+          }
+        ],
+        parameters: {
+          sampleCount: 1,
+          outputMimeType: "image/png",
+          aspectRatio: "1:1"
+        }
+      } : {
+        contents: [{
+          parts: [{ text: promptText }]
+        }],
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"]
+        }
+      };
+
+      // Output request debug info
+      requestInfo.innerText = `[METHOD]: POST\n[URL]: ${url.split('?key=')[0]}?key=***HIDDEN***\n\n[REQUEST PAYLOAD JSON]:\n${JSON.stringify(payload, null, 2)}`;
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const statusText = `상태: HTTP ${response.status} ${response.statusText}`;
+        
+        if (response.ok) {
+          const data = await response.json();
+          responseInfo.innerText = JSON.stringify(data, null, 2);
+          
+          let base64Data = null;
+          let mimeType = 'image/png';
+
+          if (isImagen) {
+            base64Data = data.predictions?.[0]?.bytesBase64Encoded;
+          } else {
+            const candidate = data.candidates?.[0];
+            const imagePart = candidate?.content?.parts?.find(p => p.inlineData);
+            if (imagePart && imagePart.inlineData) {
+              base64Data = imagePart.inlineData.data;
+              mimeType = imagePart.inlineData.mimeType || 'image/png';
+            } else {
+              // Check if it's text explanation
+              const textPart = candidate?.content?.parts?.find(p => p.text);
+              if (textPart) {
+                throw new Error(`모델이 이미지 대신 텍스트 설명을 반환했습니다: "${textPart.text}"`);
+              }
+            }
+          }
+
+          if (base64Data) {
+            statusBar.className = 'status-bar success';
+            statusBar.innerText = `${statusText} - 성공!`;
+            
+            const imgSrc = `data:${mimeType};base64,${base64Data}`;
+            resultImg.src = imgSrc;
+            resultImg.style.display = 'block';
+            emptyText.style.display = 'none';
+
+            downloadBtn.href = imgSrc;
+            downloadBtn.download = `generated_${modelName}_${Date.now()}.png`;
+            downloadBtn.style.display = 'block';
+          } else {
+            throw new Error('응답 JSON에서 이미지 데이터(Base64)를 검출하지 못했습니다.');
+          }
+
+        } else {
+          statusBar.className = 'status-bar error';
+          statusBar.innerText = `${statusText} - 에러 발생`;
+          const errorText = await response.text();
+          
+          let friendlyMessage = errorText;
+          try {
+            const errObj = JSON.parse(errorText);
+            if (errObj.error && errObj.error.message) {
+              if (errObj.error.message.includes("only available on paid plans")) {
+                friendlyMessage = `[결제/요금제 오류]\n${errObj.error.message}\n\n*해결 가이드: Imagen 모델은 구글 AI Studio 유료 요금제(Pay-as-you-go)에서만 제공됩니다. 무료 API 키를 사용 중이시라면 유료 요금제로 계정을 업그레이드하셔야 합니다.`;
+              } else if (errObj.error.status === "RESOURCE_EXHAUSTED" || errObj.error.message.includes("quota")) {
+                friendlyMessage = `[할당량/속도 초과]\n${errObj.error.message}\n\n*해결 가이드: 무료 요금제 계정에서는 이미지 생성 모델(gemini-*-image)의 요청 횟수가 제한되거나 0개로 설정되어 작동하지 않을 수 있습니다. 유료 요금제 업그레이드가 필요합니다.`;
+              } else {
+                friendlyMessage = `[API 에러 메시지]:\n${errObj.error.message}`;
+              }
+            }
+          } catch(e) {}
+          
+          responseInfo.innerText = friendlyMessage;
+          emptyText.innerText = '이미지 생성 실패';
+        }
+
+      } catch (err) {
+        statusBar.className = 'status-bar error';
+        statusBar.innerText = '상태: 에러/예외 발생';
+        responseInfo.innerText = `[예외 메세지]:\n${err.stack || err}\n\n*참고: 로컬 브라우저 실행(file://) 시 CORS 정책 차단으로 요청이 실패할 수 있습니다. 에러가 지속되면 Chrome 확장 프로그램(Allow CORS 등)을 활성화해 보세요.`;
+        emptyText.innerText = '에러 발생';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = '🚀 이미지 생성하기';
+      }
+    });
+  </script>
+</body>
+</html>

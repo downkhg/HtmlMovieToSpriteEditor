@@ -1,0 +1,72 @@
+{
+  "characterId": "dajung_NeoMaid_2d",
+  "masterPrompt": "2d game character, chibi anime style, cute Neo-Maid girl, twin long black ponytails, pink heart antennas headband, purple and white maid outfit with glowing neon pink tech patterns, thigh-high socks, pink sneakers, holding a futuristic pink holographic screen. Full body shot, vibrant retro cyberpunk colors, 6 heads tall",
+  "states": [
+    {
+      "name": "idle",
+      "loop": true,
+      "action": "standing breathing pose",
+      "status": "stable",
+      "statePrompt": "standing, idle breathing cycle, looking forward, calm expression"
+    },
+    {
+      "name": "walk",
+      "loop": true,
+      "action": "walking loop cycle",
+      "status": "stable",
+      "statePrompt": "walking animation, horizontal movement, legs alternating"
+    },
+    {
+      "name": "run",
+      "loop": true,
+      "action": "running sprint cycle",
+      "status": "experimental",
+      "statePrompt": "running fast, dynamic dash, forward momentum, hair blowing"
+    },
+    {
+      "name": "attack",
+      "loop": false,
+      "action": "melee strike motion",
+      "status": "stable",
+      "statePrompt": "swinging weapon, striking pose, slash effect, dynamic action stance"
+    },
+    {
+      "name": "range_attack",
+      "loop": false,
+      "action": "ranged shooting motion",
+      "status": "experimental",
+      "statePrompt": "firing weapon, targeting laser, aiming forward, projectile launch frame"
+    },
+    {
+      "name": "jump",
+      "loop": false,
+      "action": "mid-air jump pose",
+      "status": "stable",
+      "statePrompt": "jumping up, airborne, rising momentum, knees bent"
+    },
+    {
+      "name": "hurt",
+      "loop": false,
+      "action": "damaged hit-stun frame",
+      "status": "experimental",
+      "statePrompt": "knocked back, taking damage, winced expression, hit impact effect"
+    },
+    {
+      "name": "defeated",
+      "loop": true,
+      "action": "downed defeated animation",
+      "status": "stable",
+      "statePrompt": "lying on ground, defeated, faint halo or stars, static frame after fall"
+    }
+  ],
+  "chromaColor": "#00ff00",
+  "tolerance": "40",
+  "softEdge": "1.5",
+  "cclNoise": "16",
+  "audioSpecifications": {
+    "description": "Video & Audio Specifications: Isolated 2D game sprite animation loop video clip, green screen chroma key background.",
+    "bgmPolicy": "Strictly NO background music (No BGM)",
+    "sfxSync": "High-quality game sound effects (SFX) synchronized with the character's movement",
+    "audioQuality": "Clean distinct action audio design, transparent background ambient noise"
+  }
+}

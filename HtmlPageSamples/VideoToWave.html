@@ -1,0 +1,179 @@
+<!--
+프롬프터: downkhg@gmail.com
+모델: gemini
+에이전트: Antigravity
+마지막수정사항: 경로 및 파일 설명 정정, 프로젝트/캐릭터 리드미 분리 및 자동화 스킬 추가
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>영상 음성 추출기 (Pure Client-side)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 30px;
+            background-color: #f5f7fb;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h2 { margin-top: 0; color: #1a73e8; }
+        .p-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #1a73e8;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        input[type="file"] { margin: 20px 0; display: block; }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        button:hover:not(:disabled) { background-color: #1557b0; }
+        #status { margin-top: 20px; font-weight: bold; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🎥 영상 오디오 추출 프로그램</h2>
+    <div class="p-box">
+        <strong>보안 안내:</strong> 사용자가 직접 파일을 선택하기 때문에, 별도의 웹 서버(Live Server 등)를 띄우지 않고 <code>file://</code> 경로에서 직접 실행해도 보안 에러(CORS) 없이 동작합니다.
+    </div>
+
+    <input type="file" id="videoInput" accept="video/*">
+    
+    <button id="extractBtn" disabled>🎵 사운드 추출 및 WAV 다운로드</button>
+
+    <div id="status">영상 파일을 선택해 주세요.</div>
+</div>
+
+<script>
+    const videoInput = document.getElementById('videoInput');
+    const extractBtn = document.getElementById('extractBtn');
+    const statusDiv = document.getElementById('status');
+    let selectedFile = null;
+
+    // [Step 1] 파일 선택 시 즉시 버튼 활성화 (FileReader 대기 블로킹 제거)
+    videoInput.addEventListener('change', function(e) {
+        selectedFile = e.target.files[0];
+        if (!selectedFile) {
+            extractBtn.disabled = true;
+            statusDiv.innerText = "영상 파일을 선택해 주세요.";
+            return;
+        }
+
+        statusDiv.innerText = `파일 선택 완료: ${selectedFile.name} (${(selectedFile.size/1024/1024).toFixed(2)} MB)`;
+        extractBtn.disabled = false;
+    });
+
+    // [Step 2] 추출 버튼 클릭 시 비동기로 파일 로드 및 디코딩 진행
+    extractBtn.addEventListener('click', async function() {
+        if (!selectedFile) return;
+
+        statusDiv.innerText = "파일 데이터를 읽는 중... 잠시만 기다려주세요.";
+        extractBtn.disabled = true;
+
+        try {
+            // 대용량 파일 대응을 위해 모던 비동기 API(arrayBuffer) 사용
+            const arrayBuffer = await selectedFile.arrayBuffer();
+            
+            statusDiv.innerText = "오디오 데이터 초고속 디코딩 중...";
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            
+            statusDiv.innerText = "WAV 파일 포맷팅(인코딩) 중...";
+            const wavBlob = audioBufferToWav(audioBuffer);
+            
+            statusDiv.innerText = "추출 완료! 다운로드를 시작합니다.";
+            
+            const url = URL.createObjectURL(wavBlob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = selectedFile.name.split('.').slice(0, -1).join('.') + ".wav";
+            anchor.click();
+            
+            URL.revokeObjectURL(url);
+            extractBtn.disabled = false;
+
+        } catch (error) {
+            console.error(error);
+            statusDiv.innerText = "오디오 추출 실패. (파일이 너무 크거나 브라우저가 지원하지 않는 영상/오디오 코덱입니다.)";
+            extractBtn.disabled = false;
+        }
+    });
+
+    /**
+     * [Helper 함수] AudioBuffer 데이터를 순수 WAV 바이너리 파일(Blob)로 변환
+     */
+    function audioBufferToWav(buffer) {
+        let numOfChan = buffer.numberOfChannels,
+            length = buffer.length * numOfChan * 2 + 44,
+            bufferIdx = new ArrayBuffer(length),
+            view = new DataView(bufferIdx),
+            channels = [], i, sample,
+            offset = 0,
+            pos = 0;
+
+        setUint32(0x46464952);                         // "RIFF"
+        setUint32(length - 8);                         // 파일 크기 - 8
+        setUint32(0x45564157);                         // "WAVE"
+
+        setUint32(0x20746d66);                         // "fmt "
+        setUint32(16);                                 // 청크 크기 (16)
+        setUint16(1);                                  // 오디오 포맷 (1 = PCM)
+        setUint16(numOfChan);                          // 채널 수
+        setUint32(buffer.sampleRate);                  // 샘플 레이트
+        setUint32(buffer.sampleRate * 2 * numOfChan);  // 바이트 레이트
+        setUint16(numOfChan * 2);                      // 블록 얼라인
+        setUint16(16);                                 // 샘플당 비트수 (16-bit)
+
+        setUint32(0x61746164);                         // "data"
+        setUint32(length - pos - 4);                   // 데이터 청크 크기
+
+        for (i = 0; i < numOfChan; i++) {
+            channels.push(buffer.getChannelData(i));
+        }
+
+        while (pos < buffer.length) {
+            for (i = 0; i < numOfChan; i++) {
+                sample = Math.max(-1, Math.min(1, channels[i][pos]));
+                sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                view.setInt16(offset, sample, true);
+                offset += 2;
+            }
+            pos++;
+        }
+
+        return new Blob([bufferIdx], { type: "audio/wav" });
+
+        function setUint16(data) {
+            view.setUint16(offset, data, true);
+            offset += 2;
+        }
+        function setUint32(data) {
+            view.setUint32(offset, data, true);
+            offset += 4;
+        }
+    }
+</script>
+
+</body>
+</html>

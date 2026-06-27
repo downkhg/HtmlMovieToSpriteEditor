@@ -1,0 +1,3130 @@
+<!--
+프롬프터: downkhg@gmail.com
+모델: gemini
+에이전트: Antigravity
+마지막수정사항: 경로 및 파일 설명 정정, 프로젝트/캐릭터 리드미 분리 및 자동화 스킬 추가
+-->
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>동영상 상태 별 스프라이트 생성기 (Movie to Sprite Slicer)</title>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f0f16;
+            --panel-bg: #181824;
+            --panel-accent: #222235;
+            --text-color: #f8f8f2;
+            --text-muted: #8b8baf;
+            --accent-color: #ff79c6;
+            --accent-glow: rgba(255, 121, 198, 0.4);
+            --border-color: #31314d;
+            --input-bg: #1e1e2f;
+            --success-color: #50fa7b;
+            --success-glow: rgba(80, 250, 123, 0.3);
+            --info-color: #8be9fd;
+            --start-color: #3b82f6;
+            /* Blue for start */
+            --end-color: #ef4444;
+            /* Red for end */
+            --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            --font-main: 'Inter', sans-serif;
+            --font-title: 'Outfit', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header Style */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background-color: var(--panel-bg);
+            border-bottom: 2px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        .header-title-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            font-size: 2.2em;
+            background: linear-gradient(135deg, var(--accent-color), var(--info-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            font-family: var(--font-title);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.6em;
+            font-weight: 700;
+            font-family: var(--font-title);
+            letter-spacing: -0.5px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Layout Grid */
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 75px);
+            overflow: hidden;
+        }
+
+        .left-panel {
+            width: 32%;
+            min-width: 360px;
+            background-color: var(--panel-bg);
+            border-right: 2px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .center-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color);
+            overflow: hidden;
+        }
+
+        .right-panel {
+            width: 25%;
+            min-width: 300px;
+            background-color: var(--panel-bg);
+            border-left: 2px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .left-panel>*,
+        .right-panel>* {
+            flex-shrink: 0;
+        }
+
+        /* Section Headings */
+        h2,
+        h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-family: var(--font-title);
+            color: var(--text-color);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        h2 {
+            font-size: 1.25em;
+            border-left: 3px solid var(--accent-color);
+            padding-left: 10px;
+        }
+
+        h3 {
+            font-size: 1.05em;
+            color: var(--text-muted);
+        }
+
+        /* Forms & Inputs */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        label {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .flex-row>* {
+            flex: 1;
+        }
+
+        /* Buttons styling */
+        button {
+            padding: 10px 18px;
+            background-color: var(--accent-color);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button.btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            box-shadow: none;
+        }
+
+        button.btn-outline:hover {
+            background-color: var(--accent-glow);
+        }
+
+        button.btn-success {
+            background-color: var(--success-color);
+            color: #0f0f16;
+            box-shadow: 0 4px 12px var(--success-glow);
+        }
+
+        button.btn-danger {
+            background-color: var(--end-color);
+            color: white;
+        }
+
+        /* Video Player Wrapper */
+        .video-box-wrapper {
+            position: relative;
+            width: 320px;
+            /* Strict fixed width */
+            height: 240px;
+            /* Strict fixed height */
+            margin: 0 auto;
+            /* Center alignment inside panel */
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--card-shadow);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .video-overlay-msg {
+            position: absolute;
+            font-size: 0.9em;
+            color: var(--text-muted);
+            text-align: center;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Horizontal Storyboard (Scrollable list at top of center panel) */
+        .storyboard-section {
+            background-color: var(--panel-bg);
+            border-bottom: 2px solid var(--border-color);
+            padding: 15px 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .storyboard-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .storyboard-scroll-container {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            scroll-behavior: smooth;
+        }
+
+        /* Storyboard scroll bar custom styling */
+        .storyboard-scroll-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .storyboard-scroll-container::-webkit-scrollbar-track {
+            background: var(--bg-color);
+            border-radius: 4px;
+        }
+
+        .storyboard-scroll-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .storyboard-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-color);
+        }
+
+        /* State card style in storyboard list */
+        .state-storyboard-card {
+            flex: 0 0 280px;
+            background-color: var(--panel-accent);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .state-storyboard-card.active-card {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .state-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+        }
+
+        .state-card-title {
+            font-weight: 700;
+            font-size: 0.95em;
+            color: var(--accent-color);
+        }
+
+        .state-card-delete {
+            background: transparent;
+            border: none;
+            color: var(--end-color);
+            cursor: pointer;
+            padding: 2px 6px;
+            font-size: 0.85em;
+            box-shadow: none;
+        }
+
+        .state-card-delete:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        .state-frames-preview {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            background-color: var(--bg-color);
+            border-radius: 6px;
+            padding: 6px;
+            min-height: 54px;
+            align-items: center;
+        }
+
+        .frame-preview-thumb {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 4px;
+            object-fit: contain;
+            background-color: #000;
+            border: 1px solid var(--border-color);
+        }
+
+        .state-card-details {
+            font-size: 0.8em;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            row-gap: 4px;
+            column-gap: 10px;
+            color: var(--text-muted);
+        }
+
+        .state-card-details span.label {
+            font-weight: bold;
+        }
+
+        .state-card-details span.value {
+            text-align: right;
+            color: var(--text-color);
+        }
+
+        /* Add State Frame Card Placeholder */
+        .add-state-card-placeholder {
+            flex: 0 0 200px;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            background-color: transparent;
+            gap: 10px;
+        }
+
+        .add-state-card-placeholder:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            background-color: var(--panel-accent);
+        }
+
+        .add-state-card-placeholder svg {
+            width: 32px;
+            height: 32px;
+            stroke: currentColor;
+        }
+
+        /* Interactive Timeline Slicer Styling */
+        .timeline-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            justify-content: center;
+            position: relative;
+        }
+
+        .timeline-control-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .timeline-state-editor {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Custom timeline slider component */
+        .timeline-component-wrapper {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px 0;
+            user-select: none;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .timeline-ruler {
+            position: absolute;
+            bottom: 5px;
+            left: 3%;
+            right: 3%;
+            height: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .timeline-track {
+            position: absolute;
+            top: 50%;
+            left: 3%;
+            right: 3%;
+            height: 16px;
+            transform: translateY(-50%);
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: visible;
+        }
+
+        /* Ranges of other states inside the track */
+        .timeline-range-zone {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.12);
+            border-left: 1px dashed rgba(255, 255, 255, 0.3);
+            border-right: 1px dashed rgba(255, 255, 255, 0.3);
+            pointer-events: auto;
+            cursor: pointer;
+            z-index: 1;
+        }
+
+        .timeline-range-zone.active-zone {
+            background-color: var(--accent-glow);
+            border-left: 1px solid var(--accent-color);
+            border-right: 1px solid var(--accent-color);
+        }
+
+        /* Custom Draggable Handles (triangles on timeline track) */
+        .timeline-handle {
+            position: absolute;
+            top: 50%;
+            width: 14px;
+            height: 52px;
+            transform: translate(-50%, -50%);
+            cursor: ew-resize;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 5;
+        }
+
+        .handle-top-marker,
+        .handle-bottom-marker {
+            width: 0;
+            height: 0;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+        }
+
+        .handle-top-marker {
+            border-top: 10px solid currentColor;
+        }
+
+        .handle-bottom-marker {
+            border-bottom: 10px solid currentColor;
+        }
+
+        .handle-bar-line {
+            width: 2px;
+            height: 32px;
+            background-color: currentColor;
+        }
+
+        .timeline-handle.handle-start {
+            color: var(--start-color);
+        }
+
+        .timeline-handle.handle-end {
+            color: var(--end-color);
+        }
+
+        /* Handle labels */
+        .handle-tag {
+            position: absolute;
+            top: -24px;
+            transform: translateX(-50%);
+            left: 50%;
+            padding: 2px 6px;
+            font-size: 0.7em;
+            font-weight: bold;
+            border-radius: 4px;
+            color: white;
+            white-space: nowrap;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .handle-start .handle-tag {
+            background-color: var(--start-color);
+        }
+
+        .handle-end .handle-tag {
+            background-color: var(--end-color);
+        }
+
+        /* Other States' boundary ticks */
+        .timeline-boundary-tick {
+            position: absolute;
+            top: 50%;
+            width: 2px;
+            height: 40px;
+            transform: translate(-50%, -50%);
+            background-color: #8e8e93;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .timeline-boundary-tick::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: -4px;
+            width: 10px;
+            height: 6px;
+            background-color: #8e8e93;
+            clip-path: polygon(0 0, 100% 0, 50% 100%);
+        }
+
+        .timeline-boundary-tick::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: -4px;
+            width: 10px;
+            height: 6px;
+            background-color: #8e8e93;
+            clip-path: polygon(50% 0, 0 100%, 100% 100%);
+        }
+
+        /* Output Previews in Right Panel */
+        pre {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85em;
+            width: 260px;
+            /* Strict fixed width */
+            height: 180px;
+            /* Strict fixed height */
+            margin: 0 auto;
+            /* Center alignment inside panel */
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* Sprite Sheet Canvas Wrapper */
+        .spritesheet-preview-box {
+            width: 260px;
+            /* Strict fixed width */
+            height: 240px;
+            /* Strict fixed height */
+            margin: 0 auto;
+            /* Center alignment inside panel */
+            background-color: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        #spritesheetCanvas {
+            max-width: 100%;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            background-image: linear-gradient(45deg, #111 25%, transparent 25%),
+                linear-gradient(-45deg, #111 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #111 75%),
+                linear-gradient(-45deg, transparent 75%, #111 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            background-color: #222;
+        }
+
+        #previewCanvas {
+            max-width: 100%;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            background-image: linear-gradient(45deg, #111 25%, transparent 25%),
+                linear-gradient(-45deg, #111 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #111 75%),
+                linear-gradient(-45deg, transparent 75%, #111 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            background-color: #222;
+        }
+
+        /* Loading / Processing Indicator */
+        .loading-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(15, 15, 22, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid transparent;
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Utility Hidden Elements */
+        #hiddenVideo {
+            display: none;
+        }
+
+        /* Responsive Layout details */
+        .left-panel .form-group select {
+            cursor: pointer;
+        }
+
+        /* Toast Notification style */
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--panel-accent);
+            border-left: 4px solid var(--accent-color);
+            color: var(--text-color);
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 2000;
+            transform: translateY(150%);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 0.9em;
+            pointer-events: none;
+        }
+
+        .toast-notification.show {
+            transform: translateY(0);
+        }
+
+        .state-storyboard-card.swap-selected {
+            border-color: #ffb86c !important;
+            box-shadow: 0 0 12px rgba(255, 184, 108, 0.6) !important;
+        }
+
+        /* Prompt Manager Modal */
+        .prompt-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(15, 15, 22, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1500;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .prompt-modal-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .prompt-modal-container {
+            background-color: var(--panel-bg);
+            width: 90%;
+            max-width: 1200px;
+            height: 85%;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        .prompt-modal-overlay.show .prompt-modal-container {
+            transform: scale(1);
+        }
+
+        .prompt-modal-header {
+            padding: 15px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            background-color: var(--panel-accent);
+        }
+
+        .prompt-modal-title {
+            margin: 0;
+            font-size: 1.25em;
+            font-family: var(--font-title);
+            font-weight: 700;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .prompt-modal-close {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--end-color);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.2s;
+            box-shadow: none;
+        }
+
+        .prompt-modal-close:hover {
+            background-color: var(--end-color);
+            color: white;
+        }
+
+        .prompt-modal-iframe {
+            flex: 1;
+            border: none;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header bar -->
+    <header>
+        <div class="header-title-group">
+            <div class="logo-icon">🎞️</div>
+            <div>
+                <h1>동영상 상태 별 스프라이트 생성기</h1>
+                <div style="font-size: 0.75em; color: var(--text-muted);">AI Prompt Generated Movie Slicer & Sprite
+                    Sheet Exporter</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn-outline" onclick="openPromptManagerModal()">⚙️ 프롬프트 매니저</button>
+            <input type="file" id="projectFileInput" accept=".json" style="display: none;">
+            <button class="btn-outline" onclick="document.getElementById('projectFileInput').click()">📂 프로젝트/설정
+                로드</button>
+            <button onclick="saveProjectJSON()">💾 프로젝트 저장</button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="main-container">
+
+        <!-- Left Side: Source Video & Settings -->
+        <div class="left-panel">
+            <h2>🎥 비디오 소스 로드</h2>
+            <div class="form-group">
+                <input type="file" id="videoFileInput" accept="video/*" style="display: none;">
+                <button onclick="document.getElementById('videoFileInput').click()" style="width:100%;">
+                    📂 동영상 파일 불러오기
+                </button>
+            </div>
+
+            <!-- Video Player -->
+            <div class="video-box-wrapper" style="position: relative; overflow: hidden;">
+                <div class="video-overlay-msg" id="videoPromptMsg">
+                    <span>선택된 비디오 없음</span>
+                    <span style="font-size: 0.8em;">(MP4 등 동영상 파일을 불러오세요)</span>
+                </div>
+                <video id="previewVideo" playsinline style="display: none;"></video>
+                <canvas id="previewCanvas" style="width: 100%; height: 100%; object-fit: contain; z-index: 1;"></canvas>
+                <!-- 1:1 crop boundary indicator overlay -->
+                <div id="videoCropOverlay"
+                    style="display: none; position: absolute; border: 2px dashed var(--accent-color); pointer-events: none; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55); z-index: 2; border-radius: 4px;">
+                </div>
+            </div>
+
+            <!-- Video Player Controls -->
+            <div
+                style="display: flex; gap: 8px; margin-top: -10px; align-items: center; background-color: var(--panel-accent); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); z-index: 3;">
+                <button onclick="playActiveState(false)" class="btn-outline"
+                    style="padding: 6px 12px; font-size: 0.85em; flex: 1;">▶ 재생</button>
+                <button onclick="playActiveState(true)" class="btn-outline"
+                    style="padding: 6px 12px; font-size: 0.85em; flex: 1.2;">🔄 반복재생</button>
+                <button onclick="pauseVideo()" class="btn-outline"
+                    style="padding: 6px 12px; font-size: 0.85em; border-color: var(--end-color); color: var(--end-color); flex: 0.8;">⏸
+                    정지</button>
+                <button onclick="stopVideo()" class="btn-outline"
+                    style="padding: 6px 12px; font-size: 0.85em; flex: 0.8;">⏹ 초기화</button>
+            </div>
+
+            <hr style="border-color: var(--border-color); margin: 5px 0;">
+
+            <h2>🎨 Chroma Key 필터 설정</h2>
+            <div class="form-group">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="chromaKeyEnabled" style="width:18px; height:18px; cursor:pointer;">
+                        <label for="chromaKeyEnabled"
+                            style="font-size: 0.95em; cursor:pointer; color:var(--text-color);">크로마키 활성화</label>
+                    </div>
+                    <button type="button" id="pipetteBtn" class="btn-outline"
+                        style="padding: 4px 10px; font-size: 0.8em; margin-bottom: 0; cursor: pointer;">🧪 스포이트</button>
+                </div>
+            </div>
+
+            <div class="flex-row">
+                <div class="form-group">
+                    <label>색상 선택</label>
+                    <input type="color" id="chromaColor" value="#00ff00"
+                        style="padding: 0; height: 38px; cursor: pointer;">
+                </div>
+                <div class="form-group">
+                    <label>비디오 FPS</label>
+                    <input type="number" id="videoFPS" value="30" min="1" max="120">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label>허용 오차(Tolerance)</label>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <input type="number" id="chromaToleranceNumber" min="1" max="200" value="40"
+                            style="width: 55px; padding: 4px 6px; font-size: 0.85em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
+                        <select id="chromaToleranceCombo"
+                            style="width: 75px; padding: 4px 6px; font-size: 0.85em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
+                            <option value="">기타</option>
+                            <option value="10">10 (엄격)</option>
+                            <option value="20">20</option>
+                            <option value="30">30</option>
+                            <option value="40">40 (기본)</option>
+                            <option value="50">50</option>
+                            <option value="70">70</option>
+                            <option value="100">100 (느슨)</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="range" id="chromaTolerance" min="1" max="200" value="40"
+                    style="width: 100%; cursor: pointer;">
+            </div>
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label>부드러운 에지(Soft Edge)</label>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <input type="number" id="chromaSoftEdgeNumber" min="0" max="20" step="0.1" value="1.5"
+                            style="width: 55px; padding: 4px 6px; font-size: 0.85em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
+                        <select id="chromaSoftEdgeCombo"
+                            style="width: 75px; padding: 4px 6px; font-size: 0.85em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
+                            <option value="">기타</option>
+                            <option value="0">0.0 (하드)</option>
+                            <option value="0.5">0.5</option>
+                            <option value="1.0">1.0</option>
+                            <option value="1.5">1.5 (기본)</option>
+                            <option value="2.0">2.0</option>
+                            <option value="3.0">3.0</option>
+                            <option value="5.0">5.0 (소프트)</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="range" id="chromaSoftEdge" min="0" max="20" step="0.1" value="1.5"
+                    style="width: 100%; cursor: pointer;">
+            </div>
+
+            <hr style="border-color: var(--border-color); margin: 5px 0;">
+
+            <h2>✂️ 크롭 영역 설정 <span style="font-size: 0.75em; font-weight: normal; color: var(--text-muted);">(드래그&휠 조절
+                    가능)</span></h2>
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label>크롭 크기 (%)</label>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <input type="number" id="cropSizeNumber" min="10" max="100" value="100"
+                            style="width: 55px; padding: 4px 6px; font-size: 0.85em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
+                        <select id="cropSizeCombo"
+                            style="width: 75px; padding: 4px 6px; font-size: 0.85em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
+                            <option value="">기타</option>
+                            <option value="100">100%</option>
+                            <option value="90">90%</option>
+                            <option value="75">75%</option>
+                            <option value="50">50%</option>
+                            <option value="30">30%</option>
+                            <option value="10">10%</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="range" id="cropSizeRange" min="10" max="100" value="100"
+                    style="width: 100%; cursor: pointer;">
+            </div>
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label>가로 위치 (X) (%)</label>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <input type="number" id="cropXNumber" min="0" max="100" value="50"
+                            style="width: 55px; padding: 4px 6px; font-size: 0.85em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
+                        <select id="cropXCombo"
+                            style="width: 75px; padding: 4px 6px; font-size: 0.85em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
+                            <option value="">기타</option>
+                            <option value="0">0% (좌)</option>
+                            <option value="25">25%</option>
+                            <option value="50">50% (중)</option>
+                            <option value="75">75%</option>
+                            <option value="100">100% (우)</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="range" id="cropXRange" min="0" max="100" value="50" style="width: 100%; cursor: pointer;">
+            </div>
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label>세로 위치 (Y) (%)</label>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <input type="number" id="cropYNumber" min="0" max="100" value="50"
+                            style="width: 55px; padding: 4px 6px; font-size: 0.85em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
+                        <select id="cropYCombo"
+                            style="width: 75px; padding: 4px 6px; font-size: 0.85em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
+                            <option value="">기타</option>
+                            <option value="0">0% (상)</option>
+                            <option value="25">25%</option>
+                            <option value="50">50% (중)</option>
+                            <option value="75">75%</option>
+                            <option value="100">100% (하)</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="range" id="cropYRange" min="0" max="100" value="50" style="width: 100%; cursor: pointer;">
+            </div>
+        </div>
+
+        <!-- Center: Horizontal Storyboard & Timeline Editor -->
+        <div class="center-panel">
+
+            <!-- Horizontal Storyboard Viewer -->
+            <div class="storyboard-section">
+                <div class="storyboard-title-row">
+                    <h2>📋 상태별 스토리보드 목록 <span
+                            style="font-size: 0.75em; font-weight: normal; color: var(--text-muted);">(스크롤 가능)</span>
+                    </h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="swapModeBtn" class="btn-outline"
+                            style="padding: 6px 12px; font-size: 0.85em; border-color: var(--accent-color); color: var(--accent-color);"
+                            onclick="toggleSwapMode()">🔄 상태 이름 교환</button>
+                        <input type="file" id="promptConfigFileInput" accept=".json" style="display: none;">
+                        <button class="btn-success" style="padding: 6px 12px; font-size: 0.85em;"
+                            onclick="document.getElementById('promptConfigFileInput').click()">⚙️ 프롬프트 상태 로드</button>
+                    </div>
+                </div>
+                <div class="storyboard-scroll-container" id="storyboardContainer">
+                    <!-- Dynamic state cards go here -->
+                    <div class="add-state-card-placeholder" onclick="addNewStatePrompt()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <span>새 상태 추가</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Timeline Slider -->
+            <div class="timeline-section">
+                <div class="timeline-control-panel">
+                    <div class="timeline-state-editor"
+                        style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <label style="font-size: 1.1em; color: var(--text-color); white-space: nowrap;">편집 중인
+                            상태:</label>
+                        <select id="activeStateSelect" style="width: 180px; margin-bottom: 0;">
+                            <!-- State Options populated dynamically -->
+                        </select>
+
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <label
+                                style="font-size: 0.9em; color: var(--start-color); font-weight: bold; white-space: nowrap;">시작
+                                프레임:</label>
+                            <input type="number" id="stateStartFrameInput"
+                                style="width: 80px; margin-bottom: 0; padding: 6px 10px;" min="0">
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <label
+                                style="font-size: 0.9em; color: var(--end-color); font-weight: bold; white-space: nowrap;">끝
+                                프레임:</label>
+                            <input type="number" id="stateEndFrameInput"
+                                style="width: 80px; margin-bottom: 0; padding: 6px 10px;" min="0">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-outline" onclick="setMarkerToCurrent('start')"
+                            style="border-color: var(--start-color); color: var(--start-color);">
+                            🔷 시작점으로 설정
+                        </button>
+                        <button class="btn-outline" onclick="setMarkerToCurrent('end')"
+                            style="border-color: var(--end-color); color: var(--end-color);">
+                            🔶 끝점으로 설정
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Dual handle timeline component -->
+                <div class="timeline-component-wrapper" id="timelineWrapper">
+                    <div class="timeline-track" id="timelineTrack">
+                        <!-- Colored zones of other states dynamically drawn here -->
+
+                        <!-- Playhead visual line -->
+                        <div id="timelinePlayhead"
+                            style="position: absolute; top: -12px; bottom: -12px; width: 3px; background-color: var(--accent-color); pointer-events: none; z-index: 8; display: none; box-shadow: 0 0 8px var(--accent-glow);">
+                            <div
+                                style="width: 9px; height: 9px; background-color: var(--accent-color); border-radius: 50%; position: absolute; top: 0; left: -3px; box-shadow: 0 0 6px var(--accent-glow);">
+                            </div>
+                        </div>
+
+                        <!-- Draggable Handles -->
+                        <div class="timeline-handle handle-start" id="handleStart">
+                            <div class="handle-tag">시작</div>
+                            <div class="handle-top-marker"></div>
+                            <div class="handle-bar-line"></div>
+                            <div class="handle-bottom-marker"></div>
+                        </div>
+                        <div class="timeline-handle handle-end" id="handleEnd">
+                            <div class="handle-tag">끝</div>
+                            <div class="handle-top-marker"></div>
+                            <div class="handle-bar-line"></div>
+                            <div class="handle-bottom-marker"></div>
+                        </div>
+                    </div>
+                    <!-- Timeline ruler ticks -->
+                    <div class="timeline-ruler" id="timelineRuler">
+                        <span>00:00</span>
+                        <span>00:00</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Side: Exporter & Output Preview -->
+        <div class="right-panel">
+            <h2>🎯 프로젝트 설정</h2>
+            <div class="form-group">
+                <label>캐릭터 ID</label>
+                <input type="text" id="characterIdInput" value="dajung_NeoMaid_2d">
+            </div>
+
+            <hr style="border-color: var(--border-color); margin: 5px 0;">
+
+            <h2>📐 스프라이트 시트 내보내기</h2>
+            <div class="form-group">
+                <label>열(Columns) 개수</label>
+                <input type="number" id="spriteCols" value="8" min="1" max="100">
+            </div>
+            <div class="flex-row">
+                <div class="form-group">
+                    <label>프레임 너비(Width)</label>
+                    <input type="number" id="frameWidth" value="128" min="8" max="2048">
+                </div>
+                <div class="form-group">
+                    <label>프레임 높이(Height)</label>
+                    <input type="number" id="frameHeight" value="128" min="8" max="2048">
+                </div>
+            </div>
+
+            <div class="spritesheet-preview-box">
+                <canvas id="spritesheetCanvas" width="256" height="256"></canvas>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                <button onclick="generateSpriteSheet()" class="btn-outline">⚡ 스프라이트 시트 미리보기 생성</button>
+                <button onclick="downloadSpriteSheet()" class="btn-success">💾 스프라이트 시트 다운로드 (.png)</button>
+            </div>
+
+            <hr style="border-color: var(--border-color); margin: 5px 0;">
+
+            <h2>🎵 오디오 효과음 내보내기</h2>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button onclick="extractActiveStateAudio()" class="btn-outline"
+                    style="border-color: var(--info-color); color: var(--info-color);">🔊 선택된 상태 음성 추출 (.wav)</button>
+            </div>
+
+            <hr style="border-color: var(--border-color); margin: 5px 0;">
+            <h2>📄 Live JSON 데이터</h2>
+            <pre id="jsonPreview">{}</pre>
+        </div>
+
+    </div>
+
+    <!-- Hidden HTML5 elements for processing -->
+    <video id="hiddenVideo" muted></video>
+    <canvas id="processingCanvas" style="display:none;"></canvas>
+
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="spinner"></div>
+        <h3 id="loadingText" style="color: white; margin: 0;">스프라이트 시트 생성 중...</h3>
+    </div>
+
+    <!-- Logic Script -->
+    <script>
+        // Project Data Model
+        let projectConfig = {
+            characterId: "dajung_NeoMaid_2d",
+            fps: 30,
+            chromaKey: {
+                enabled: true,
+                color: "#00ff00",
+                tolerance: 40,
+                softEdge: 1.5
+            },
+            crop: {
+                x: 0.5,
+                y: 0.5,
+                size: 1.0
+            },
+            states: [
+                {
+                    name: "idle",
+                    startFrame: 0,
+                    endFrame: 30,
+                    loop: true,
+                    action: "standing breathing pose"
+                },
+                {
+                    name: "walk",
+                    startFrame: 31,
+                    endFrame: 60,
+                    loop: true,
+                    action: "walking loop cycle"
+                }
+            ],
+            videoName: ""
+        };
+
+        // UI state variables
+        let videoDuration = 0;
+        let videoWidth = 0;
+        let videoHeight = 0;
+        let totalFrames = 0;
+        let activeStateIndex = 0;
+        let isDragging = null; // 'start' or 'end' or null
+        let videoBlobUrl = "";
+        let extractedFramesCache = {}; // Cache of extracted image structures { [stateIndex]: [imgDataUrl1, imgDataUrl2, ...] }
+        let isExtractingFrames = false;
+        let loadedVideoFile = null;
+        let decodedAudioBuffer = null;
+
+        // DOM elements
+        const previewVideo = document.getElementById('previewVideo');
+        const hiddenVideo = document.getElementById('hiddenVideo');
+        const timelineWrapper = document.getElementById('timelineWrapper');
+        const timelineTrack = document.getElementById('timelineTrack');
+        const handleStart = document.getElementById('handleStart');
+        const handleEnd = document.getElementById('handleEnd');
+        const activeStateSelect = document.getElementById('activeStateSelect');
+        const storyboardContainer = document.getElementById('storyboardContainer');
+        const jsonPreview = document.getElementById('jsonPreview');
+        const spritesheetCanvas = document.getElementById('spritesheetCanvas');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const loadingText = document.getElementById('loadingText');
+
+        // Generic Helper for Slider + Number Input + Combo Box preset selector synchronization
+        function setupTripleControl(baseName, configObject, configKey, scale, minVal, maxVal, isFloat, onInputCallback, onChangeCallback) {
+            const rangeEl = document.getElementById(baseName + (baseName.endsWith('Range') ? '' : (baseName.endsWith('Size') || baseName.endsWith('X') || baseName.endsWith('Y') ? 'Range' : '')));
+            const numEl = document.getElementById(baseName + 'Number');
+            const comboEl = document.getElementById(baseName + 'Combo');
+
+            const parseVal = (str) => {
+                let v = isFloat ? parseFloat(str) : parseInt(str);
+                if (isNaN(v)) v = minVal;
+                return Math.max(minVal, Math.min(maxVal, v));
+            };
+
+            const updateAll = (val, source) => {
+                // Update internal config
+                configObject[configKey] = val / scale;
+
+                // Sync elements
+                if (source !== 'range' && rangeEl) rangeEl.value = val;
+                if (source !== 'number' && numEl) numEl.value = val;
+
+                if (source !== 'combo' && comboEl) {
+                    let match = false;
+                    for (let i = 0; i < comboEl.options.length; i++) {
+                        if (parseFloat(comboEl.options[i].value) === val) {
+                            comboEl.value = comboEl.options[i].value;
+                            match = true;
+                            break;
+                        }
+                    }
+                    if (!match) comboEl.value = '';
+                }
+
+                // Call real-time callback
+                if (onInputCallback) onInputCallback(val);
+            };
+
+            // Range input event (GUI slider drag)
+            if (rangeEl) {
+                rangeEl.addEventListener('input', (e) => {
+                    const val = parseVal(e.target.value);
+                    updateAll(val, 'range');
+                });
+                rangeEl.addEventListener('change', () => {
+                    if (onChangeCallback) onChangeCallback();
+                });
+            }
+
+            // Number field input event
+            if (numEl) {
+                numEl.addEventListener('input', (e) => {
+                    const val = parseVal(e.target.value);
+                    updateAll(val, 'number');
+                });
+                numEl.addEventListener('change', () => {
+                    if (onChangeCallback) onChangeCallback();
+                });
+            }
+
+            // Combo select dropdown change event
+            if (comboEl) {
+                comboEl.addEventListener('change', (e) => {
+                    if (e.target.value === '') return;
+                    const val = parseVal(e.target.value);
+                    updateAll(val, 'combo');
+                    if (onChangeCallback) onChangeCallback();
+                });
+            }
+        }
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            syncInputsFromConfig();
+            setupTimelineDragging();
+            setupEventListeners();
+            renderStates();
+            updateJsonPreview();
+            setupPlaybackLogic();
+
+            // Resize listener for 1:1 overlay
+            window.addEventListener('resize', updateVideoCropOverlay);
+
+            // If opener exists, notify them that we are ready
+            if (window.opener && !window.opener.closed) {
+                window.opener.postMessage({ type: 'videoSlicerReady' }, '*');
+            }
+        });
+
+        function setupEventListeners() {
+            // Video loader
+            document.getElementById('videoFileInput').addEventListener('change', loadVideoSource);
+
+            // Settings synchronization inputs
+            document.getElementById('characterIdInput').addEventListener('input', (e) => {
+                projectConfig.characterId = e.target.value;
+                updateJsonPreview();
+            });
+
+            document.getElementById('videoFPS').addEventListener('change', (e) => {
+                projectConfig.fps = parseInt(e.target.value) || 30;
+                recalculateTotalFrames();
+                updateTimelineRuler();
+                updateJsonPreview();
+                renderStates();
+            });
+
+            document.getElementById('chromaKeyEnabled').addEventListener('change', (e) => {
+                projectConfig.chromaKey.enabled = e.target.checked;
+                updateJsonPreview();
+                invalidateFrameCache();
+                triggerBatchExtract();
+                renderPreviewFrame();
+            });
+
+            document.getElementById('chromaColor').addEventListener('input', (e) => {
+                projectConfig.chromaKey.color = e.target.value;
+                updateJsonPreview();
+                renderPreviewFrame();
+            });
+            document.getElementById('chromaColor').addEventListener('change', () => {
+                invalidateFrameCache();
+                triggerBatchExtract();
+                renderPreviewFrame();
+            });
+
+            // Chroma Tolerance Triple Control
+            setupTripleControl('chromaTolerance', projectConfig.chromaKey, 'tolerance', 1, 1, 200, false,
+                () => {
+                    updateJsonPreview();
+                    renderPreviewFrame();
+                },
+                () => {
+                    invalidateFrameCache();
+                    triggerBatchExtract();
+                }
+            );
+
+            // Chroma Soft Edge Triple Control
+            setupTripleControl('chromaSoftEdge', projectConfig.chromaKey, 'softEdge', 1, 0, 20, true,
+                () => {
+                    updateJsonPreview();
+                    renderPreviewFrame();
+                },
+                () => {
+                    invalidateFrameCache();
+                    triggerBatchExtract();
+                }
+            );
+
+            // Project File Loader
+            document.getElementById('projectFileInput').addEventListener('change', loadProjectJSON);
+
+            // Active State select listener
+            activeStateSelect.addEventListener('change', (e) => {
+                activeStateIndex = parseInt(e.target.value);
+                onActiveStateChanged();
+            });
+
+            // Crop Size Triple Control
+            setupTripleControl('cropSize', projectConfig.crop, 'size', 100, 10, 100, false,
+                () => {
+                    getCropRect();
+                    syncCropSliders();
+                    updateVideoCropOverlay();
+                    updateJsonPreview();
+                },
+                () => {
+                    invalidateFrameCache();
+                    triggerBatchExtract();
+                }
+            );
+
+            // Crop X Triple Control
+            setupTripleControl('cropX', projectConfig.crop, 'x', 100, 0, 100, false,
+                () => {
+                    getCropRect();
+                    syncCropSliders();
+                    updateVideoCropOverlay();
+                    updateJsonPreview();
+                },
+                () => {
+                    invalidateFrameCache();
+                    triggerBatchExtract();
+                }
+            );
+
+            // Crop Y Triple Control
+            setupTripleControl('cropY', projectConfig.crop, 'y', 100, 0, 100, false,
+                () => {
+                    getCropRect();
+                    syncCropSliders();
+                    updateVideoCropOverlay();
+                    updateJsonPreview();
+                },
+                () => {
+                    invalidateFrameCache();
+                    triggerBatchExtract();
+                }
+            );
+
+            // Start/End Frame text input listeners
+            document.getElementById('stateStartFrameInput').addEventListener('change', (e) => {
+                const activeState = projectConfig.states[activeStateIndex];
+                if (!activeState) return;
+
+                let val = parseInt(e.target.value);
+                if (isNaN(val)) val = 0;
+                val = Math.max(0, Math.min(activeState.endFrame - 1, val));
+
+                activeState.startFrame = val;
+                e.target.value = val;
+
+                updateTimelineHandles();
+                updateJsonPreview();
+                extractStateFrames(activeStateIndex).then(() => {
+                    renderStates();
+                });
+
+                // Seek player to preview the updated start frame
+                if (previewVideo.duration) {
+                    previewVideo.currentTime = val / projectConfig.fps;
+                }
+            });
+
+            document.getElementById('stateEndFrameInput').addEventListener('change', (e) => {
+                const activeState = projectConfig.states[activeStateIndex];
+                if (!activeState) return;
+
+                let val = parseInt(e.target.value);
+                if (isNaN(val)) val = totalFrames - 1;
+                val = Math.max(activeState.startFrame + 1, Math.min(totalFrames - 1, val));
+
+                activeState.endFrame = val;
+                e.target.value = val;
+
+                updateTimelineHandles();
+                updateJsonPreview();
+                extractStateFrames(activeStateIndex).then(() => {
+                    renderStates();
+                });
+
+                // Seek player to preview the updated end frame
+                if (previewVideo.duration) {
+                    previewVideo.currentTime = val / projectConfig.fps;
+                }
+            });
+
+            // Pipette color sampler events
+            document.getElementById('pipetteBtn').addEventListener('click', togglePipette);
+
+            const previewCanvas = document.getElementById('previewCanvas');
+            previewCanvas.addEventListener('click', (e) => {
+                if (!isPipetteActive) return;
+
+                const coords = getClickVideoCoords(e);
+                if (coords) {
+                    const color = sampleColorAt(coords.x, coords.y);
+                    projectConfig.chromaKey.color = color;
+                    document.getElementById('chromaColor').value = color;
+
+                    invalidateFrameCache();
+                    triggerBatchExtract();
+                    updateJsonPreview();
+                    renderPreviewFrame();
+
+                    // Turn off pipette after picking
+                    togglePipette();
+                }
+            });
+
+            // Listen for prompt config file selection
+            document.getElementById('promptConfigFileInput').addEventListener('change', loadPromptConfigOnly);
+
+            // Listen for message from state/prompt manager
+            window.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'syncFromPromptManager') {
+                    handleSyncFromPromptManager(event.data.configData);
+                } else if (event.data && event.data.type === 'videoSlicerReady') {
+                    // Send current project configuration to Prompt Manager iframe
+                    const promptFrame = document.getElementById('promptManagerFrame');
+                    if (promptFrame && promptFrame.contentWindow) {
+                        promptFrame.contentWindow.postMessage({
+                            type: 'syncFromVideoSlicer',
+                            configData: projectConfig
+                        }, '*');
+                    }
+                } else if (event.data && event.data.type === 'closePromptManagerModal') {
+                    closePromptManagerModal();
+                }
+            });
+        }
+
+        // Prompt Manager Modal Controls
+        function openPromptManagerModal() {
+            if (window.location.protocol === 'file:') {
+                // On file:// protocol, modern browsers block relative iframe loading for security.
+                // Fall back to a separate browser popup window.
+                const popupWidth = 1200;
+                const popupHeight = 850;
+                const left = (window.screen.width - popupWidth) / 2;
+                const top = (window.screen.height - popupHeight) / 2;
+
+                const popup = window.open('2DSpritePromptAStateManager.html', 'PromptManagerPopup',
+                    `width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+
+                if (popup) {
+                    popup.focus();
+                } else {
+                    window.open('2DSpritePromptAStateManager.html', '_blank');
+                }
+            } else {
+                // On HTTP/HTTPS protocols, show the premium inline iframe modal
+                const modal = document.getElementById('promptManagerModal');
+                const frame = document.getElementById('promptManagerFrame');
+                frame.src = '2DSpritePromptAStateManager.html';
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    modal.classList.add('show');
+                }, 10);
+            }
+        }
+
+        function closePromptManagerModal() {
+            const modal = document.getElementById('promptManagerModal');
+            const frame = document.getElementById('promptManagerFrame');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                frame.src = 'about:blank';
+            }, 300);
+        }
+
+        function syncInputsFromConfig() {
+            document.getElementById('characterIdInput').value = projectConfig.characterId;
+            document.getElementById('videoFPS').value = projectConfig.fps;
+            document.getElementById('chromaKeyEnabled').checked = projectConfig.chromaKey.enabled;
+            document.getElementById('chromaColor').value = projectConfig.chromaKey.color;
+
+            // Sync chromaTolerance triple controls
+            const tol = projectConfig.chromaKey.tolerance;
+            document.getElementById('chromaTolerance').value = tol;
+            document.getElementById('chromaToleranceNumber').value = tol;
+            const tolCombo = document.getElementById('chromaToleranceCombo');
+            tolCombo.value = Array.from(tolCombo.options).some(o => parseInt(o.value) === tol) ? tol : '';
+
+            // Sync chromaSoftEdge triple controls
+            const soft = projectConfig.chromaKey.softEdge;
+            document.getElementById('chromaSoftEdge').value = soft;
+            document.getElementById('chromaSoftEdgeNumber').value = soft;
+            const softCombo = document.getElementById('chromaSoftEdgeCombo');
+            softCombo.value = Array.from(softCombo.options).some(o => parseFloat(o.value) === soft) ? soft : '';
+
+            syncCropSliders();
+        }
+
+        function syncCropSliders() {
+            if (!projectConfig.crop) {
+                projectConfig.crop = { x: 0.5, y: 0.5, size: 1.0 };
+            }
+            const size = Math.round(projectConfig.crop.size * 100);
+            const x = Math.round(projectConfig.crop.x * 100);
+            const y = Math.round(projectConfig.crop.y * 100);
+
+            // Sync cropSize triple controls
+            document.getElementById('cropSizeRange').value = size;
+            document.getElementById('cropSizeNumber').value = size;
+            const sizeCombo = document.getElementById('cropSizeCombo');
+            sizeCombo.value = Array.from(sizeCombo.options).some(o => parseInt(o.value) === size) ? size : '';
+
+            // Sync cropX triple controls
+            document.getElementById('cropXRange').value = x;
+            document.getElementById('cropXNumber').value = x;
+            const xCombo = document.getElementById('cropXCombo');
+            xCombo.value = Array.from(xCombo.options).some(o => parseInt(o.value) === x) ? x : '';
+
+            // Sync cropY triple controls
+            document.getElementById('cropYRange').value = y;
+            document.getElementById('cropYNumber').value = y;
+            const yCombo = document.getElementById('cropYCombo');
+            yCombo.value = Array.from(yCombo.options).some(o => parseInt(o.value) === y) ? y : '';
+        }
+
+        // Recalculate frame statistics based on duration and FPS
+        function recalculateTotalFrames() {
+            if (videoDuration > 0) {
+                totalFrames = Math.floor(videoDuration * projectConfig.fps);
+            } else {
+                totalFrames = 100; // placeholder default
+            }
+        }
+
+        // Load project or prompt configurations
+        function loadProjectJSON(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                try {
+                    const loadedConfig = JSON.parse(event.target.result);
+                    if (loadedConfig.characterId) {
+                        // Check if it is a Prompt Config (states do not have startFrame/endFrame)
+                        const isPromptConfig = loadedConfig.states && loadedConfig.states.some(s => s.startFrame === undefined || s.endFrame === undefined);
+
+                        if (isPromptConfig) {
+                            // Map states, mapping incoming states and keeping/calculating frame ranges
+                            const incomingStates = loadedConfig.states || [];
+                            const updatedStates = [];
+                            incomingStates.forEach(incomingState => {
+                                const existing = projectConfig.states.find(s => s.name === incomingState.name);
+                                if (existing) {
+                                    updatedStates.push({
+                                        ...incomingState,
+                                        startFrame: existing.startFrame,
+                                        endFrame: existing.endFrame
+                                    });
+                                } else {
+                                    let lastEndFrame = -1;
+                                    projectConfig.states.forEach(s => {
+                                        if (s.endFrame > lastEndFrame) lastEndFrame = s.endFrame;
+                                    });
+                                    updatedStates.forEach(s => {
+                                        if (s.endFrame > lastEndFrame) lastEndFrame = s.endFrame;
+                                    });
+
+                                    const frameDuration = projectConfig.fps || 30;
+                                    const newStart = lastEndFrame + 1;
+                                    const newEnd = newStart + frameDuration - 1;
+
+                                    updatedStates.push({
+                                        ...incomingState,
+                                        startFrame: Math.max(0, newStart),
+                                        endFrame: Math.max(0, newEnd)
+                                    });
+                                }
+                            });
+
+                            projectConfig.characterId = loadedConfig.characterId;
+
+                            // Map other settings if they exist in the config
+                            if (loadedConfig.chromaColor) {
+                                projectConfig.chromaKey.color = loadedConfig.chromaColor;
+                            }
+                            if (loadedConfig.tolerance !== undefined) {
+                                projectConfig.chromaKey.tolerance = parseInt(loadedConfig.tolerance);
+                            }
+                            if (loadedConfig.softEdge !== undefined) {
+                                projectConfig.chromaKey.softEdge = parseFloat(loadedConfig.softEdge);
+                            }
+
+                            projectConfig.states = updatedStates;
+
+                            // Store other prompt properties
+                            if (loadedConfig.masterPrompt) {
+                                projectConfig.masterPrompt = loadedConfig.masterPrompt;
+                            }
+                            if (loadedConfig.audioSpecifications) {
+                                projectConfig.audioSpecifications = loadedConfig.audioSpecifications;
+                            }
+                            if (loadedConfig.cclNoise !== undefined) {
+                                projectConfig.cclNoise = loadedConfig.cclNoise;
+                            }
+
+                            alert("프롬프트 설정 파일(.json)을 로드하여 상태와 설정을 성공적으로 적용했습니다!");
+                        } else {
+                            // It's a standard Video Slicer Project
+                            projectConfig = {
+                                ...projectConfig,
+                                ...loadedConfig
+                            };
+                            alert("프로젝트 설정을 성공적으로 불렀습니다!");
+                        }
+
+                        if (!projectConfig.crop) {
+                            projectConfig.crop = { x: 0.5, y: 0.5, size: 1.0 };
+                        }
+
+                        activeStateIndex = 0;
+                        syncInputsFromConfig();
+                        recalculateTotalFrames();
+                        updateTimelineRuler();
+                        renderStates();
+                        updateTimelineHandles();
+                        updateJsonPreview();
+                        invalidateFrameCache();
+                        triggerBatchExtract();
+                    } else {
+                        alert("올바르지 않은 설정 파일 구조입니다.");
+                    }
+                } catch (err) {
+                    alert("JSON 파일 파싱 실패: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Load prompt configurations separately
+        function loadPromptConfigOnly(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                try {
+                    const loadedConfig = JSON.parse(event.target.result);
+                    if (loadedConfig.characterId) {
+                        handleSyncFromPromptManager(loadedConfig);
+                        alert("프롬프트 상태 설정을 성공적으로 불렀습니다!");
+                    } else {
+                        alert("올바르지 않은 설정 파일 구조입니다.");
+                    }
+                } catch (err) {
+                    alert("JSON 파일 파싱 실패: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Save project configurations
+        function saveProjectJSON() {
+            const dataStr = JSON.stringify(projectConfig, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${projectConfig.characterId}_project.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Load source video
+        function loadVideoSource(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            loadedVideoFile = file;
+            decodedAudioBuffer = null;
+
+            if (videoBlobUrl) {
+                URL.revokeObjectURL(videoBlobUrl);
+            }
+
+            videoBlobUrl = URL.createObjectURL(file);
+            projectConfig.videoName = file.name;
+
+            // Load into players
+            previewVideo.src = videoBlobUrl;
+            hiddenVideo.src = videoBlobUrl;
+
+            document.getElementById('videoPromptMsg').style.display = 'none';
+
+            previewVideo.onloadedmetadata = () => {
+                videoDuration = previewVideo.duration;
+                videoWidth = previewVideo.videoWidth;
+                videoHeight = previewVideo.videoHeight;
+
+                // Setup preview canvas dimensions
+                const previewCanvas = document.getElementById('previewCanvas');
+                previewCanvas.width = videoWidth;
+                previewCanvas.height = videoHeight;
+
+                recalculateTotalFrames();
+                updateTimelineRuler();
+                updateTimelineHandles();
+                renderStates();
+                updateJsonPreview();
+
+                invalidateFrameCache();
+                triggerBatchExtract();
+
+                // Show and update crop overlay area
+                updateVideoCropOverlay();
+
+                // Render initial frame
+                renderPreviewFrame();
+            };
+        }
+
+        // Invalidate extracted frame cache
+        function invalidateFrameCache() {
+            extractedFramesCache = {};
+        }
+
+        // Get the current crop bounds (sx, sy, sw, sh) in video pixel coordinates (clamped to video boundaries)
+        function getCropRect() {
+            if (!videoWidth || !videoHeight) {
+                return { sx: 0, sy: 0, sw: 256, sh: 256 };
+            }
+
+            if (!projectConfig.crop) {
+                projectConfig.crop = { x: 0.5, y: 0.5, size: 1.0 };
+            }
+
+            const S_max = Math.min(videoWidth, videoHeight);
+            const S = Math.round(S_max * projectConfig.crop.size);
+            const H = Math.round(S / 2);
+
+            // Target center coordinates in video space
+            let cx = Math.round(videoWidth * projectConfig.crop.x);
+            let cy = Math.round(videoHeight * projectConfig.crop.y);
+
+            // Clamp center so the crop square stays within bounds
+            cx = Math.max(H, Math.min(videoWidth - H, cx));
+            cy = Math.max(H, Math.min(videoHeight - H, cy));
+
+            // Recalculate crop.x and crop.y in case clamping adjusted them
+            projectConfig.crop.x = cx / videoWidth;
+            projectConfig.crop.y = cy / videoHeight;
+
+            const sx = cx - H;
+            const sy = cy - H;
+
+            return { sx, sy, sw: S, sh: S };
+        }
+
+        // Update 1:1 square crop visual indicator overlay
+        function updateVideoCropOverlay() {
+            const video = document.getElementById('previewVideo');
+            const overlay = document.getElementById('videoCropOverlay');
+
+            if (!video.videoWidth || !video.videoHeight || !videoBlobUrl) {
+                overlay.style.display = 'none';
+                return;
+            }
+
+            const container = video.parentElement;
+            const containerRect = container.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const containerHeight = containerRect.height;
+
+            const videoRatio = video.videoWidth / video.videoHeight;
+            const containerRatio = containerWidth / containerHeight;
+
+            let displayWidth, displayHeight;
+            let xOffset = 0, yOffset = 0;
+
+            if (videoRatio > containerRatio) {
+                // Video is wider than container (letterbox top/bottom)
+                displayWidth = containerWidth;
+                displayHeight = containerWidth / videoRatio;
+                yOffset = (containerHeight - displayHeight) / 2;
+            } else {
+                // Video is taller than container (pillarbox left/right)
+                displayHeight = containerHeight;
+                displayWidth = containerHeight * videoRatio;
+                xOffset = (containerWidth - displayWidth) / 2;
+            }
+
+            // Get current crop boundary in video pixels
+            const { sx, sy, sw, sh } = getCropRect();
+
+            // Map to display scale
+            const scale = displayWidth / video.videoWidth;
+            const displayS = sw * scale;
+            const displayX = xOffset + sx * scale;
+            const displayY = yOffset + sy * scale;
+
+            overlay.style.display = 'block';
+            overlay.style.width = `${displayS}px`;
+            overlay.style.height = `${displayS}px`;
+            overlay.style.left = `${displayX}px`;
+            overlay.style.top = `${displayY}px`;
+        }
+
+        // Interactive mouse & touch dragging to move crop area
+        let isDraggingCrop = false;
+        let startDragX = 0;
+        let startDragY = 0;
+        let startCropX = 0;
+        let startCropY = 0;
+
+        window.addEventListener('load', () => {
+            const overlay = document.getElementById('videoCropOverlay');
+            const video = document.getElementById('previewVideo');
+
+            overlay.addEventListener('mousedown', (e) => {
+                if (!videoWidth || !videoHeight) return;
+                isDraggingCrop = true;
+                startDragX = e.clientX;
+                startDragY = e.clientY;
+                startCropX = projectConfig.crop.x;
+                startCropY = projectConfig.crop.y;
+                e.stopPropagation();
+                e.preventDefault();
+            });
+
+            overlay.addEventListener('touchstart', (e) => {
+                if (!videoWidth || !videoHeight || e.touches.length === 0) return;
+                isDraggingCrop = true;
+                startDragX = e.touches[0].clientX;
+                startDragY = e.touches[0].clientY;
+                startCropX = projectConfig.crop.x;
+                startCropY = projectConfig.crop.y;
+                e.stopPropagation();
+                e.preventDefault();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDraggingCrop) return;
+                const dx = e.clientX - startDragX;
+                const dy = e.clientY - startDragY;
+                moveCropOverlay(dx, dy);
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!isDraggingCrop || e.touches.length === 0) return;
+                const dx = e.touches[0].clientX - startDragX;
+                const dy = e.touches[0].clientY - startDragY;
+                moveCropOverlay(dx, dy);
+            });
+
+            const onDragEnd = () => {
+                if (isDraggingCrop) {
+                    isDraggingCrop = false;
+                    invalidateFrameCache();
+                    triggerBatchExtract();
+                }
+            };
+
+            window.addEventListener('mouseup', onDragEnd);
+            window.addEventListener('touchend', onDragEnd);
+
+            function moveCropOverlay(dx, dy) {
+                const containerRect = video.parentElement.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
+
+                const videoRatio = video.videoWidth / video.videoHeight;
+                const containerRatio = containerWidth / containerHeight;
+
+                let displayWidth, displayHeight;
+                if (videoRatio > containerRatio) {
+                    displayWidth = containerWidth;
+                    displayHeight = containerWidth / videoRatio;
+                } else {
+                    displayHeight = containerHeight;
+                    displayWidth = containerHeight * videoRatio;
+                }
+
+                // Convert display delta to delta percent in video space
+                const deltaXPercent = dx / displayWidth;
+                const deltaYPercent = dy / displayHeight;
+
+                projectConfig.crop.x = startCropX + deltaXPercent;
+                projectConfig.crop.y = startCropY + deltaYPercent;
+
+                getCropRect(); // clamps center positions
+                syncCropSliders();
+                updateVideoCropOverlay();
+                updateJsonPreview();
+            }
+
+            // Mousewheel zoom control over the crop box or video to scale crop size
+            video.parentElement.addEventListener('wheel', (e) => {
+                if (!videoWidth || !videoHeight) return;
+                e.preventDefault();
+
+                // Calculate delta step
+                const step = e.deltaY < 0 ? 0.05 : -0.05;
+                let newSize = projectConfig.crop.size + step;
+                newSize = Math.max(0.1, Math.min(1.0, newSize));
+
+                projectConfig.crop.size = newSize;
+
+                getCropRect(); // clamps center positions
+                syncCropSliders();
+                updateVideoCropOverlay();
+                updateJsonPreview();
+
+                // debounce/throttle frame extraction updates
+                clearTimeout(window.cropWheelTimeout);
+                window.cropWheelTimeout = setTimeout(() => {
+                    invalidateFrameCache();
+                    triggerBatchExtract();
+                }, 300);
+            }, { passive: false });
+        });
+
+        // Trigger batch extraction for thumbnails of all states
+        async function triggerBatchExtract() {
+            if (!videoBlobUrl || isExtractingFrames) return;
+            isExtractingFrames = true;
+
+            for (let i = 0; i < projectConfig.states.length; i++) {
+                if (!extractedFramesCache[i]) {
+                    await extractStateFrames(i);
+                }
+            }
+
+            isExtractingFrames = false;
+            renderStates();
+        }
+
+        // Extract frames client-side using Canvas + hidden Video seeker
+        async function extractStateFrames(stateIndex) {
+            const state = projectConfig.states[stateIndex];
+            if (!state) return;
+
+            const startFrame = state.startFrame;
+            const endFrame = state.endFrame;
+            const step = Math.max(1, Math.floor((endFrame - startFrame) / 3)); // Extract 4 preview frames (start, middle-ish, end)
+
+            const framesToExtract = [];
+            for (let f = startFrame; f <= endFrame; f += step) {
+                if (framesToExtract.length < 4) {
+                    framesToExtract.push(f);
+                }
+            }
+            if (framesToExtract[framesToExtract.length - 1] !== endFrame && endFrame > startFrame) {
+                framesToExtract.push(endFrame);
+            }
+
+            const imgUrls = [];
+
+            const tempCanvas = document.getElementById('processingCanvas');
+            const ctx = tempCanvas.getContext('2d');
+
+            // Get crop region using helper
+            const { sx, sy, sw, sh } = getCropRect();
+            tempCanvas.width = sw;
+            tempCanvas.height = sh;
+
+            for (let frame of framesToExtract) {
+                const targetTime = frame / projectConfig.fps;
+
+                // Seek hidden video and wait
+                await seekVideoPromise(hiddenVideo, targetTime);
+
+                // Draw cropped square to canvas
+                ctx.clearRect(0, 0, sw, sh);
+                ctx.drawImage(hiddenVideo, sx, sy, sw, sh, 0, 0, sw, sh);
+
+                // Apply chroma key if enabled
+                if (projectConfig.chromaKey.enabled) {
+                    applyChromaKeyFilter(ctx, sw, sh);
+                }
+
+                imgUrls.push(tempCanvas.toDataURL('image/png'));
+            }
+
+            extractedFramesCache[stateIndex] = imgUrls;
+        }
+
+        function seekVideoPromise(videoEl, time) {
+            return new Promise((resolve) => {
+                const onSeeked = () => {
+                    videoEl.removeEventListener('seeked', onSeeked);
+                    resolve();
+                };
+                videoEl.addEventListener('seeked', onSeeked);
+                videoEl.currentTime = time;
+            });
+        }
+
+        // Optimized custom pixel level chroma key shader algorithm
+        function applyChromaKeyFilter(ctx, w, h) {
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const data = imgData.data;
+
+            // Parse hex color to RGB
+            const hex = projectConfig.chromaKey.color;
+            const rKey = parseInt(hex.slice(1, 3), 16);
+            const gKey = parseInt(hex.slice(3, 5), 16);
+            const bKey = parseInt(hex.slice(5, 7), 16);
+
+            const tolerance = projectConfig.chromaKey.tolerance;
+            const softEdge = projectConfig.chromaKey.softEdge;
+
+            const tolSq = tolerance * tolerance;
+            const maxTol = tolerance + softEdge * 10;
+            const maxTolSq = maxTol * maxTol;
+            const softRange = Math.max(0.1, maxTol - tolerance);
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                const diffR = r - rKey;
+                const diffG = g - gKey;
+                const diffB = b - bKey;
+                const distSq = diffR * diffR + diffG * diffG + diffB * diffB;
+
+                if (distSq < tolSq) {
+                    data[i + 3] = 0; // Completely transparent
+                } else if (distSq < maxTolSq) {
+                    // Soft gradient edge fade - only calculate sqrt here
+                    const dist = Math.sqrt(distSq);
+                    const ratio = (dist - tolerance) / softRange;
+                    data[i + 3] = Math.floor(ratio * 255);
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        // Real-time canvas rendering loop
+        let previewLoopId = null;
+
+        function renderPreviewFrame() {
+            if (!videoWidth || !videoHeight) return;
+            const canvas = document.getElementById('previewCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, videoWidth, videoHeight);
+            ctx.drawImage(previewVideo, 0, 0, videoWidth, videoHeight);
+
+            if (projectConfig.chromaKey.enabled) {
+                applyChromaKeyFilter(ctx, videoWidth, videoHeight);
+            }
+        }
+
+        function startPreviewLoop() {
+            if (previewLoopId) return;
+            const loop = () => {
+                renderPreviewFrame();
+                if (!previewVideo.paused && !previewVideo.ended) {
+                    previewLoopId = requestAnimationFrame(loop);
+                } else {
+                    previewLoopId = null;
+                }
+            };
+            previewLoopId = requestAnimationFrame(loop);
+        }
+
+        // Pipette (Color Sampler) logic
+        let isPipetteActive = false;
+
+        function togglePipette() {
+            if (!videoWidth || !videoHeight) {
+                alert("먼저 동영상을 불러오세요.");
+                return;
+            }
+            const btn = document.getElementById('pipetteBtn');
+            const canvas = document.getElementById('previewCanvas');
+            isPipetteActive = !isPipetteActive;
+
+            if (isPipetteActive) {
+                btn.style.backgroundColor = 'var(--accent-color)';
+                btn.style.color = '#fff';
+                canvas.style.cursor = 'crosshair';
+            } else {
+                btn.style.backgroundColor = 'transparent';
+                btn.style.color = 'var(--accent-color)';
+                canvas.style.cursor = 'default';
+            }
+        }
+
+        function getClickVideoCoords(e) {
+            const canvas = document.getElementById('previewCanvas');
+            if (!videoWidth || !videoHeight) return null;
+
+            const rect = canvas.getBoundingClientRect();
+            const offsetX = e.clientX - rect.left;
+            const offsetY = e.clientY - rect.top;
+
+            const cw = rect.width;
+            const ch = rect.height;
+            const vw = videoWidth;
+            const vh = videoHeight;
+
+            const r_video = vw / vh;
+            const r_element = cw / ch;
+
+            let dw, dh, x_offset, y_offset;
+
+            if (r_video > r_element) {
+                dw = cw;
+                dh = cw / r_video;
+                x_offset = 0;
+                y_offset = (ch - dh) / 2;
+            } else {
+                dh = ch;
+                dw = ch * r_video;
+                x_offset = (cw - dw) / 2;
+                y_offset = 0;
+            }
+
+            if (offsetX >= x_offset && offsetX <= x_offset + dw &&
+                offsetY >= y_offset && offsetY <= y_offset + dh) {
+                const x = Math.floor(((offsetX - x_offset) / dw) * vw);
+                const y = Math.floor(((offsetY - y_offset) / dh) * vh);
+                return {
+                    x: Math.max(0, Math.min(vw - 1, x)),
+                    y: Math.max(0, Math.min(vh - 1, y))
+                };
+            }
+            return null;
+        }
+
+        function sampleColorAt(x, y) {
+            const tempCanvas = document.getElementById('processingCanvas');
+            const ctx = tempCanvas.getContext('2d');
+
+            tempCanvas.width = videoWidth;
+            tempCanvas.height = videoHeight;
+            ctx.clearRect(0, 0, videoWidth, videoHeight);
+            ctx.drawImage(previewVideo, 0, 0, videoWidth, videoHeight);
+
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            const r = pixel[0];
+            const g = pixel[1];
+            const b = pixel[2];
+
+            const rgbToHex = (r, g, b) => '#' + [r, g, b].map(val => {
+                const hex = val.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+
+            return rgbToHex(r, g, b);
+        }
+
+        // Render visual State Storyboard list (Horizontal list at top)
+        function renderStates() {
+            // Keep the placeholder "+" card
+            const placeholder = storyboardContainer.querySelector('.add-state-card-placeholder');
+
+            // Clean up old state cards
+            const oldCards = storyboardContainer.querySelectorAll('.state-storyboard-card');
+            oldCards.forEach(card => card.remove());
+
+            // Build new cards
+            projectConfig.states.forEach((state, index) => {
+                const card = document.createElement('div');
+                card.className = `state-storyboard-card ${index === activeStateIndex ? 'active-card' : ''}`;
+
+                // Add swap-selected class if first swap target is selected
+                if (isSwapMode && index === firstSwapIndex) {
+                    card.className += ' swap-selected';
+                }
+
+                card.onclick = (e) => {
+                    // Avoid triggering if clicking delete button
+                    if (e.target.closest('.state-card-delete')) return;
+
+                    if (isSwapMode) {
+                        handleSwapSelection(index);
+                        return;
+                    }
+
+                    activeStateIndex = index;
+                    activeStateSelect.value = index;
+                    onActiveStateChanged();
+                };
+
+                // Preview thumbs
+                let thumbsHTML = '';
+                const cachedThumbs = extractedFramesCache[index];
+                if (cachedThumbs && cachedThumbs.length > 0) {
+                    cachedThumbs.forEach(url => {
+                        thumbsHTML += `<img class="frame-preview-thumb" src="${url}" alt="Frame">`;
+                    });
+                } else {
+                    thumbsHTML = `<span style="grid-column: 1/5; font-size:0.75em; text-align:center; color:var(--text-muted);">미설정</span>`;
+                }
+
+                // Render card layout matching design mock-up
+                card.innerHTML = `
+                    <div class="state-card-header">
+                        <span class="state-card-title">${state.name}</span>
+                        <button class="state-card-delete" onclick="deleteState(${index})">X</button>
+                    </div>
+                    <div class="state-frames-preview">
+                        ${thumbsHTML}
+                    </div>
+                    <div class="state-card-details">
+                        <span class="label">프레임수:</span>
+                        <span class="value">${state.endFrame - state.startFrame + 1}</span>
+                        
+                        <span class="label">시작시간:</span>
+                        <span class="value">${formatTime(state.startFrame / projectConfig.fps)}</span>
+                        
+                        <span class="label">끝시간:</span>
+                        <span class="value">${formatTime(state.endFrame / projectConfig.fps)}</span>
+                    </div>
+                `;
+
+                storyboardContainer.insertBefore(card, placeholder);
+            });
+
+            // Update dropdown selections
+            const prevVal = activeStateSelect.value;
+            activeStateSelect.innerHTML = '';
+            projectConfig.states.forEach((state, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = `${state.name} (프레임 ${state.startFrame} ~ ${state.endFrame})`;
+                activeStateSelect.appendChild(opt);
+            });
+            activeStateSelect.value = activeStateIndex;
+
+            // Draw other state range visual regions on timeline
+            drawTimelineZones();
+        }
+
+        // Add visual zones of other states on timeline
+        function drawTimelineZones() {
+            // Clean up existing zones
+            const existingZones = timelineTrack.querySelectorAll('.timeline-range-zone');
+            existingZones.forEach(z => z.remove());
+
+            projectConfig.states.forEach((state, index) => {
+                const zone = document.createElement('div');
+                zone.className = `timeline-range-zone ${index === activeStateIndex ? 'active-zone' : ''}`;
+
+                // Calculate percentage margins
+                const startPct = (state.startFrame / totalFrames) * 100;
+                const endPct = (state.endFrame / totalFrames) * 100;
+
+                zone.style.left = `${startPct}%`;
+                zone.style.width = `${endPct - startPct}%`;
+
+                // Set click listener to select this state
+                zone.onclick = (e) => {
+                    e.stopPropagation();
+                    activeStateIndex = index;
+                    activeStateSelect.value = index;
+                    onActiveStateChanged();
+                };
+
+                timelineTrack.appendChild(zone);
+            });
+        }
+
+        // Create new blank animation state range
+        function addNewStatePrompt() {
+            const name = prompt("새로운 상태 이름을 입력하세요 (예: attack, hit, jump):");
+            if (!name) return;
+
+            // Find non-overlapping safe frame slot
+            let lastEndFrame = -1;
+            projectConfig.states.forEach(s => {
+                if (s.endFrame > lastEndFrame) {
+                    lastEndFrame = s.endFrame;
+                }
+            });
+
+            const frameDuration = projectConfig.fps || 30;
+            const newStart = lastEndFrame + 1;
+            const newEnd = newStart + frameDuration - 1;
+
+            projectConfig.states.push({
+                name: name.trim().toLowerCase(),
+                startFrame: newStart,
+                endFrame: newEnd,
+                loop: false,
+                action: `${name} action motion`
+            });
+
+            activeStateIndex = projectConfig.states.length - 1;
+            renderStates();
+            updateTimelineHandles();
+            updateJsonPreview();
+
+            // Extract preview frames for the new state
+            extractStateFrames(activeStateIndex).then(() => {
+                renderStates();
+            });
+        }
+
+        // Delete animation state range
+        function deleteState(index) {
+            if (projectConfig.states.length <= 1) {
+                alert("적어도 하나의 상태가 존재해야 합니다.");
+                return;
+            }
+            if (confirm(`'${projectConfig.states[index].name}' 상태를 삭제하시겠습니까?`)) {
+                projectConfig.states.splice(index, 1);
+
+                // Keep index in range
+                if (activeStateIndex >= projectConfig.states.length) {
+                    activeStateIndex = projectConfig.states.length - 1;
+                }
+
+                renderStates();
+                updateTimelineHandles();
+                updateJsonPreview();
+            }
+        }
+
+        // Timeline rulers formatter
+        function updateTimelineRuler() {
+            const ruler = document.getElementById('timelineRuler');
+            ruler.innerHTML = '';
+
+            // Render 6 visual ticks
+            for (let i = 0; i <= 5; i++) {
+                const tickVal = (videoDuration / 5) * i;
+                const span = document.createElement('span');
+                span.textContent = formatTime(tickVal);
+                ruler.appendChild(span);
+            }
+        }
+
+        // Custom Timeline Dual Handle drag handlers
+        function setupTimelineDragging() {
+            // Mouse & Touch events
+            const onDown = (e, handleType) => {
+                isDragging = handleType;
+                document.body.style.cursor = 'ew-resize';
+                e.preventDefault();
+            };
+
+            handleStart.addEventListener('mousedown', (e) => onDown(e, 'start'));
+            handleEnd.addEventListener('mousedown', (e) => onDown(e, 'end'));
+
+            // Mobile touch fallback support
+            handleStart.addEventListener('touchstart', (e) => onDown(e, 'start'));
+            handleEnd.addEventListener('touchstart', (e) => onDown(e, 'end'));
+
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('touchmove', onMove);
+
+            window.addEventListener('mouseup', onUp);
+            window.addEventListener('touchend', onUp);
+        }
+
+        function onMove(e) {
+            if (!isDragging) return;
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const rect = timelineTrack.getBoundingClientRect();
+
+            // Calculate absolute ratio (0 to 1) based on track offset bounds
+            let pct = (clientX - rect.left) / rect.width;
+            pct = Math.max(0, Math.min(1, pct));
+
+            const targetFrame = Math.round(pct * totalFrames);
+            const activeState = projectConfig.states[activeStateIndex];
+
+            if (!activeState) return;
+
+            if (isDragging === 'start') {
+                activeState.startFrame = Math.min(activeState.endFrame - 1, targetFrame);
+            } else if (isDragging === 'end') {
+                activeState.endFrame = Math.max(activeState.startFrame + 1, targetFrame);
+            }
+
+            // Seek video player to live-preview the selected frame
+            const currentFrame = isDragging === 'start' ? activeState.startFrame : activeState.endFrame;
+            previewVideo.currentTime = currentFrame / projectConfig.fps;
+
+            updateTimelineHandles();
+            updateJsonPreview();
+
+            // Real-time update of storyboard card details
+            const activeCard = storyboardContainer.querySelector('.state-storyboard-card.active-card');
+            if (activeCard) {
+                const details = activeCard.querySelector('.state-card-details');
+                if (details) {
+                    details.innerHTML = `
+                        <span class="label">프레임수:</span>
+                        <span class="value">${activeState.endFrame - activeState.startFrame + 1}</span>
+                        
+                        <span class="label">시작시간:</span>
+                        <span class="value">${formatTime(activeState.startFrame / projectConfig.fps)}</span>
+                        
+                        <span class="label">끝시간:</span>
+                        <span class="value">${formatTime(activeState.endFrame / projectConfig.fps)}</span>
+                    `;
+                }
+            }
+        }
+
+        function onUp() {
+            if (isDragging) {
+                // Re-extract preview thumbnails for the updated state range
+                const idx = activeStateIndex;
+                extractStateFrames(idx).then(() => {
+                    renderStates();
+                });
+
+                isDragging = null;
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        // Position handles visually based on current state's start/end frames
+        function updateTimelineHandles() {
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!activeState) return;
+
+            const startPct = (activeState.startFrame / totalFrames) * 100;
+            const endPct = (activeState.endFrame / totalFrames) * 100;
+
+            handleStart.style.left = `${startPct}%`;
+            handleEnd.style.left = `${endPct}%`;
+
+            // Update text/number inputs
+            const startInput = document.getElementById('stateStartFrameInput');
+            const endInput = document.getElementById('stateEndFrameInput');
+            if (startInput && endInput) {
+                startInput.value = activeState.startFrame;
+                endInput.value = activeState.endFrame;
+            }
+
+            // Draw other state range visual zones
+            drawTimelineZones();
+        }
+
+        // Utility sets start/end to current playing timeline spot
+        function setMarkerToCurrent(type) {
+            if (!previewVideo.duration) return;
+            const currentFrame = Math.round(previewVideo.currentTime * projectConfig.fps);
+            const activeState = projectConfig.states[activeStateIndex];
+
+            if (!activeState) return;
+
+            if (type === 'start') {
+                activeState.startFrame = Math.min(activeState.endFrame - 1, currentFrame);
+            } else if (type === 'end') {
+                activeState.endFrame = Math.max(activeState.startFrame + 1, currentFrame);
+            }
+
+            updateTimelineHandles();
+            updateJsonPreview();
+
+            extractStateFrames(activeStateIndex).then(() => {
+                renderStates();
+            });
+        }
+
+        // Helper time formatter (mm:ss:ms)
+        function formatTime(secs) {
+            if (isNaN(secs)) return "00:00.0";
+            const m = Math.floor(secs / 60).toString().padStart(2, '0');
+            const s = Math.floor(secs % 60).toString().padStart(2, '0');
+            const ms = Math.floor((secs % 1) * 10).toString();
+            return `${m}:${s}.${ms}`;
+        }
+
+        // Render JSON schema output to panel
+        function updateJsonPreview() {
+            jsonPreview.textContent = JSON.stringify(projectConfig, null, 2);
+        }
+
+        // Render & Generate Client Side Sprite Sheets using HTML5 Canvases
+        async function generateSpriteSheet() {
+            if (!videoBlobUrl) {
+                alert("스프라이트 시트를 생성하기 위해 비디오 소스를 먼저 불러오세요.");
+                return;
+            }
+
+            const colCount = parseInt(document.getElementById('spriteCols').value) || 8;
+            const fWidth = parseInt(document.getElementById('frameWidth').value) || 128;
+            const fHeight = parseInt(document.getElementById('frameHeight').value) || 128;
+
+            loadingText.textContent = "스프라이트 시트 프레임 추출 중...";
+            loadingScreen.style.display = 'flex';
+
+            try {
+                // Collect frames from the currently selected animation state only
+                let allFrames = [];
+                const activeState = projectConfig.states[activeStateIndex];
+                if (activeState) {
+                    for (let f = activeState.startFrame; f <= activeState.endFrame; f++) {
+                        allFrames.push({
+                            frame: f,
+                            stateName: activeState.name,
+                            stateIdx: activeStateIndex
+                        });
+                    }
+                }
+
+                if (allFrames.length === 0) {
+                    throw new Error("선택된 상태의 프레임 범위가 없습니다.");
+                }
+
+                // Calculate Canvas specifications
+                const rowCount = Math.ceil(allFrames.length / colCount);
+                spritesheetCanvas.width = colCount * fWidth;
+                spritesheetCanvas.height = rowCount * fHeight;
+
+                const ctx = spritesheetCanvas.getContext('2d');
+                ctx.clearRect(0, 0, spritesheetCanvas.width, spritesheetCanvas.height);
+
+                // Hidden renderer canvas
+                const rendererCanvas = document.getElementById('processingCanvas');
+                const rendererCtx = rendererCanvas.getContext('2d');
+
+                // Get crop specifications using getCropRect
+                const { sx, sy, sw, sh } = getCropRect();
+                rendererCanvas.width = sw;
+                rendererCanvas.height = sh;
+
+                // Sequentially extract frames and composite onto sheet
+                for (let i = 0; i < allFrames.length; i++) {
+                    const item = allFrames[i];
+                    const targetTime = item.frame / projectConfig.fps;
+
+                    loadingText.textContent = `프레임 추출 중... (${i + 1} / ${allFrames.length})`;
+
+                    await seekVideoPromise(hiddenVideo, targetTime);
+
+                    rendererCtx.clearRect(0, 0, sw, sh);
+                    rendererCtx.drawImage(hiddenVideo, sx, sy, sw, sh, 0, 0, sw, sh);
+
+                    if (projectConfig.chromaKey.enabled) {
+                        applyChromaKeyFilter(rendererCtx, sw, sh);
+                    }
+
+                    // Composite onto grid layout coordinates
+                    const col = i % colCount;
+                    const row = Math.floor(i / colCount);
+
+                    const dx = col * fWidth;
+                    const dy = row * fHeight;
+
+                    // Draw image stretched/scaled to bounding box bounds
+                    ctx.drawImage(rendererCanvas, dx, dy, fWidth, fHeight);
+                }
+
+                loadingScreen.style.display = 'none';
+                alert("스프라이트 시트가 성공적으로 생성되었습니다!");
+
+            } catch (err) {
+                loadingScreen.style.display = 'none';
+                alert("시트 생성 실패: " + err.message);
+                console.error(err);
+            }
+        }
+
+        // Download compiled sprite sheet file
+        function downloadSpriteSheet() {
+            const dataUrl = spritesheetCanvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = dataUrl;
+
+            // Append selected state name to filename to avoid overwrites
+            const activeState = projectConfig.states[activeStateIndex];
+            const stateSuffix = activeState ? `_${activeState.name}` : '';
+            a.download = `${projectConfig.characterId}${stateSuffix}_spritesheet.png`;
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Active State change handler
+        function onActiveStateChanged() {
+            renderStates();
+            updateTimelineHandles();
+
+            // Seek player to the start of the newly selected state
+            const activeState = projectConfig.states[activeStateIndex];
+            if (activeState && previewVideo.duration) {
+                previewVideo.currentTime = activeState.startFrame / projectConfig.fps;
+            }
+
+            // Scroll the active card into view smoothly
+            const cards = storyboardContainer.querySelectorAll('.state-storyboard-card');
+            const activeCard = cards[activeStateIndex];
+            if (activeCard) {
+                activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+
+        // Playback control variables
+        let isLoopingState = false;
+        let isPlayingSegment = false;
+
+        // Custom segment play triggers
+        function playActiveState(loop = false) {
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!activeState) return;
+
+            isPlayingSegment = true;
+            isLoopingState = loop;
+
+            const startTime = activeState.startFrame / projectConfig.fps;
+            const endTime = activeState.endFrame / projectConfig.fps;
+
+            // Unmute the video so user can hear the audio
+            previewVideo.muted = false;
+
+            // If current playhead is outside the range, seek to start first
+            if (previewVideo.currentTime < startTime || previewVideo.currentTime >= endTime) {
+                previewVideo.currentTime = startTime;
+            }
+
+            previewVideo.play().catch(err => {
+                console.error("비디오 재생 실패:", err);
+            });
+        }
+
+        function pauseVideo() {
+            previewVideo.pause();
+            isPlayingSegment = false;
+        }
+
+        function stopVideo() {
+            previewVideo.pause();
+            isPlayingSegment = false;
+
+            const activeState = projectConfig.states[activeStateIndex];
+            if (activeState) {
+                previewVideo.currentTime = activeState.startFrame / projectConfig.fps;
+            } else {
+                previewVideo.currentTime = 0;
+            }
+        }
+
+        // Setup custom segment boundary loop/stop monitoring and canvas updates
+        function setupPlaybackLogic() {
+            previewVideo.addEventListener('play', startPreviewLoop);
+            previewVideo.addEventListener('playing', startPreviewLoop);
+            previewVideo.addEventListener('seeked', () => {
+                if (previewVideo.paused) renderPreviewFrame();
+            });
+
+            previewVideo.addEventListener('timeupdate', () => {
+                if (previewVideo.paused) renderPreviewFrame();
+
+                // Update timeline playhead position
+                const playhead = document.getElementById('timelinePlayhead');
+                if (videoDuration > 0) {
+                    const pct = (previewVideo.currentTime / videoDuration) * 100;
+                    playhead.style.left = `${pct}%`;
+                    playhead.style.display = 'block';
+                }
+
+                if (!isPlayingSegment) return;
+
+                const activeState = projectConfig.states[activeStateIndex];
+                if (!activeState) return;
+
+                const startTime = activeState.startFrame / projectConfig.fps;
+                const endTime = activeState.endFrame / projectConfig.fps;
+
+                // Loop or Stop at segment boundary
+                if (previewVideo.currentTime >= endTime) {
+                    if (isLoopingState) {
+                        previewVideo.currentTime = startTime;
+                        previewVideo.play();
+                    } else {
+                        previewVideo.pause();
+                        previewVideo.currentTime = endTime;
+                        isPlayingSegment = false;
+                    }
+                }
+            });
+
+            previewVideo.addEventListener('pause', () => {
+                isPlayingSegment = false;
+            });
+        }
+
+        // Handle configuration and state synchronization from Prompt Manager
+        function handleSyncFromPromptManager(incomingConfig) {
+            if (!incomingConfig) return;
+
+            // 1. Sync characterId
+            if (incomingConfig.characterId) {
+                projectConfig.characterId = incomingConfig.characterId;
+                document.getElementById('characterIdInput').value = projectConfig.characterId;
+            }
+
+            // 2. Sync chroma key details
+            if (incomingConfig.chromaColor) {
+                projectConfig.chromaKey.color = incomingConfig.chromaColor;
+                document.getElementById('chromaColor').value = projectConfig.chromaKey.color;
+            }
+            if (incomingConfig.tolerance !== undefined) {
+                projectConfig.chromaKey.tolerance = parseInt(incomingConfig.tolerance) || 40;
+            }
+            if (incomingConfig.softEdge !== undefined) {
+                projectConfig.chromaKey.softEdge = parseFloat(incomingConfig.softEdge) || 1.5;
+            }
+
+            // Sync synced options back to UI inputs
+            syncInputsFromConfig();
+
+            // 3. Map and merge animation states while preserving existing frame ranges
+            const incomingStates = incomingConfig.states || [];
+            const updatedStates = [];
+            incomingStates.forEach(incomingState => {
+                const existing = projectConfig.states.find(s => s.name === incomingState.name);
+                if (existing) {
+                    updatedStates.push({
+                        ...incomingState,
+                        startFrame: existing.startFrame,
+                        endFrame: existing.endFrame
+                    });
+                } else {
+                    // Find last endFrame from already processed updatedStates AND projectConfig.states
+                    let lastEndFrame = -1;
+                    projectConfig.states.forEach(s => {
+                        if (s.endFrame > lastEndFrame) lastEndFrame = s.endFrame;
+                    });
+                    updatedStates.forEach(s => {
+                        if (s.endFrame > lastEndFrame) lastEndFrame = s.endFrame;
+                    });
+
+                    const frameDuration = projectConfig.fps || 30;
+                    const newStart = lastEndFrame + 1;
+                    const newEnd = newStart + frameDuration - 1;
+
+                    updatedStates.push({
+                        ...incomingState,
+                        startFrame: Math.max(0, newStart),
+                        endFrame: Math.max(0, newEnd)
+                    });
+                }
+            });
+
+            projectConfig.states = updatedStates;
+
+            // Ensure activeStateIndex remains in bounds
+            if (activeStateIndex >= projectConfig.states.length) {
+                activeStateIndex = Math.max(0, projectConfig.states.length - 1);
+            }
+
+            // Refresh UI components
+            renderStates();
+            updateTimelineHandles();
+            updateJsonPreview();
+            renderPreviewFrame();
+
+            // Invalidate frames cache and extract new thumbnails
+            invalidateFrameCache();
+            triggerBatchExtract();
+
+            // Toast notification
+            showToastNotification("프롬프트 매니저와 동기화되었습니다!");
+        }
+
+        // Swap mode functions
+        let isSwapMode = false;
+        let firstSwapIndex = null;
+
+        function toggleSwapMode() {
+            isSwapMode = !isSwapMode;
+            firstSwapIndex = null;
+
+            const btn = document.getElementById('swapModeBtn');
+            if (isSwapMode) {
+                btn.style.backgroundColor = '#ffb86c';
+                btn.style.color = '#000';
+                btn.textContent = '❌ 교환 취소';
+                showToastNotification('교환할 첫 번째 상태 카드를 선택하세요.');
+            } else {
+                btn.style.backgroundColor = 'transparent';
+                btn.style.color = 'var(--accent-color)';
+                btn.textContent = '🔄 상태 이름 교환';
+            }
+            renderStates();
+        }
+
+        function handleSwapSelection(index) {
+            if (firstSwapIndex === null) {
+                firstSwapIndex = index;
+                showToastNotification(`첫 번째 상태 선택: '${projectConfig.states[index].name}'. 교환할 두 번째 상태 카드를 클릭하세요.`);
+                renderStates();
+            } else {
+                if (firstSwapIndex === index) {
+                    showToastNotification("같은 상태를 선택할 수 없습니다.");
+                    return;
+                }
+
+                const state1 = projectConfig.states[firstSwapIndex];
+                const state2 = projectConfig.states[index];
+
+                // Swap all fields EXCEPT startFrame and endFrame
+                const fieldsToSwap = ['name', 'loop', 'action', 'status', 'statePrompt', 'locked'];
+                fieldsToSwap.forEach(field => {
+                    const temp = state1[field];
+                    state1[field] = state2[field];
+                    state2[field] = temp;
+                });
+
+                showToastNotification(`교환 완료: '${state2.name}' ↔ '${state1.name}'`);
+
+                // Reset swap mode
+                isSwapMode = false;
+                firstSwapIndex = null;
+
+                const btn = document.getElementById('swapModeBtn');
+                btn.style.backgroundColor = 'transparent';
+                btn.style.color = 'var(--accent-color)';
+                btn.textContent = '🔄 상태 이름 교환';
+
+                // Refresh UI
+                renderStates();
+                updateTimelineHandles();
+                updateJsonPreview();
+            }
+        }
+
+        function showToastNotification(message) {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            if (toast && msgEl) {
+                msgEl.textContent = message;
+                toast.classList.add('show');
+                clearTimeout(window.toastTimeout);
+                window.toastTimeout = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // --- Audio Extraction Function (Referencing VideoToWave.html) ---
+        async function extractActiveStateAudio() {
+            if (!loadedVideoFile) {
+                showToastNotification("먼저 비디오 파일을 선택해 주세요.");
+                return;
+            }
+
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!activeState) {
+                showToastNotification("선택된 상태가 없습니다.");
+                return;
+            }
+
+            showToastNotification("오디오 추출을 준비하는 중... 잠시만 기다려주세요.");
+
+            try {
+                // Decode audio track if not cached
+                if (!decodedAudioBuffer) {
+                    showToastNotification("비디오 파일에서 오디오 데이터를 디코딩하는 중...");
+                    const arrayBuffer = await loadedVideoFile.arrayBuffer();
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    decodedAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                    audioCtx.close();
+                }
+
+                showToastNotification("선택된 상태 구간의 음성을 추출하고 있습니다...");
+
+                const sampleRate = decodedAudioBuffer.sampleRate;
+                const startTime = activeState.startFrame / projectConfig.fps;
+                const endTime = activeState.endFrame / projectConfig.fps;
+
+                const startOffset = Math.floor(startTime * sampleRate);
+                const endOffset = Math.min(decodedAudioBuffer.length, Math.ceil(endTime * sampleRate));
+                const frameCount = endOffset - startOffset;
+
+                if (frameCount <= 0) {
+                    showToastNotification("구간 설정이 잘못되었거나 너무 짧습니다.");
+                    return;
+                }
+
+                // Slice audio buffer client-side using subarray views
+                const slicedBuffer = {
+                    numberOfChannels: decodedAudioBuffer.numberOfChannels,
+                    sampleRate: sampleRate,
+                    length: frameCount,
+                    getChannelData: function (ch) {
+                        return decodedAudioBuffer.getChannelData(ch).subarray(startOffset, endOffset);
+                    }
+                };
+
+                // Convert to WAV format using VideoToWave.html algorithm
+                const wavBlob = audioBufferToWav(slicedBuffer);
+
+                const downloadUrl = URL.createObjectURL(wavBlob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+
+                const charId = projectConfig.characterId || "character";
+                const cleanStateName = activeState.name.replace(/[^a-zA-Z0-9가-힣_-]/g, "");
+                a.download = `${charId}_${cleanStateName}.wav`;
+
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(downloadUrl);
+
+                showToastNotification(`음성 추출 완료: ${a.download}`);
+
+            } catch (err) {
+                console.error("Audio extraction failed:", err);
+                showToastNotification("오디오 추출 실패. (음성이 없는 영상이거나 지원하지 않는 코덱입니다.)");
+            }
+        }
+
+        /**
+         * [Helper 함수] AudioBuffer 데이터를 순수 WAV 바이너리 파일(Blob)로 변환 (VideoToWave.html 방식)
+         */
+        function audioBufferToWav(buffer) {
+            let numOfChan = buffer.numberOfChannels,
+                length = buffer.length * numOfChan * 2 + 44,
+                bufferIdx = new ArrayBuffer(length),
+                view = new DataView(bufferIdx),
+                channels = [], i, sample,
+                offset = 0,
+                pos = 0;
+
+            setUint32(0x46464952);                         // "RIFF"
+            setUint32(length - 8);                         // 파일 크기 - 8
+            setUint32(0x45564157);                         // "WAVE"
+
+            setUint32(0x20746d66);                         // "fmt "
+            setUint32(16);                                 // 청크 크기 (16)
+            setUint16(1);                                  // 오디오 포맷 (1 = PCM)
+            setUint16(numOfChan);                          // 채널 수
+            setUint32(buffer.sampleRate);                  // 샘플 레이트
+            setUint32(buffer.sampleRate * 2 * numOfChan);  // 바이트 레이트
+            setUint16(numOfChan * 2);                      // 블록 얼라인
+            setUint16(16);                                 // 샘플당 비트수 (16-bit)
+
+            setUint32(0x61746164);                         // "data"
+            setUint32(length - pos - 4);                   // 데이터 청크 크기
+
+            for (i = 0; i < numOfChan; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+
+            while (pos < buffer.length) {
+                for (i = 0; i < numOfChan; i++) {
+                    sample = Math.max(-1, Math.min(1, channels[i][pos]));
+                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    view.setInt16(offset, sample, true);
+                    offset += 2;
+                }
+                pos++;
+            }
+
+            return new Blob([bufferIdx], { type: "audio/wav" });
+
+            function setUint16(data) {
+                view.setUint16(offset, data, true);
+                offset += 2;
+            }
+            function setUint32(data) {
+                view.setUint32(offset, data, true);
+                offset += 4;
+            }
+        }
+    </script>
+
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="toast-notification">
+        <span style="font-size: 1.2em;">🔄</span>
+        <span id="toastMessage">프롬프트 매니저와 동기화되었습니다!</span>
+    </div>
+
+</body>
+
+</html>

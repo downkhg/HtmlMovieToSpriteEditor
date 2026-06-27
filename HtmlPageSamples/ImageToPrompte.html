@@ -1,0 +1,514 @@
+<!--
+프롬프터: downkhg@gmail.com
+모델: gemini
+에이전트: Antigravity
+마지막수정사항: 경로 및 파일 설명 정정, 프로젝트/캐릭터 리드미 분리 및 자동화 스킬 추가
+-->
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity Prompt Extractor (Gemini Image-to-Prompt)</title>
+    <script src="../Data/gemini.js"></script>
+    <style>
+        :root {
+            --bg-color: #1e1e2e;
+            --panel-bg: #282a36;
+            --text-color: #f8f8f2;
+            --accent-color: #ff79c6;
+            --border-color: #44475a;
+            --input-bg: #383a59;
+            --success-color: #50fa7b;
+            --highlight-bg: #343746;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .panel {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .left-panel {
+            border-right: 2px solid var(--border-color);
+            background-color: var(--panel-bg);
+            max-width: 45%;
+        }
+
+        .right-panel {
+            background-color: var(--bg-color);
+        }
+
+        h2,
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .flex-row input {
+            margin-bottom: 0;
+        }
+
+        .image-preview-box {
+            width: 100%;
+            height: 250px;
+            border: 2px dashed var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            margin-bottom: 15px;
+        }
+
+        .image-preview-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: var(--accent-color);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .success-btn {
+            background-color: var(--success-color);
+            color: #282a36;
+        }
+
+        .loader {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-color);
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid transparent;
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="panel left-panel">
+        <h2>🔧 Extractor Configuration</h2>
+
+        <div>
+            <label>Gemini API Key</label>
+            <input type="password" id="apiKeyInput" placeholder="Youa are API Key(localStorage에 보안 저장됩니다)">
+        </div>
+
+        <div class="flex-row">
+            <div style="flex: 2;">
+                <label>Model ID</label>
+                <input type="text" id="modelInput" value="gemini-2.5-flash">
+            </div>
+            <div style="flex: 1;">
+                <label>API Version</label>
+                <input type="text" id="versionInput" value="v1beta">
+            </div>
+        </div>
+
+        <div class="flex-row" style="margin-top: 10px; margin-bottom: 10px;">
+            <input type="file" id="geminiJsFileInput" accept=".js" style="display: none;">
+            <button type="button" onclick="document.getElementById('geminiJsFileInput').click()"
+                style="flex: 1; padding: 8px 12px; font-size: 0.85em; background-color: transparent; border: 1px solid var(--accent-color); color: var(--accent-color); font-weight: bold; border-radius: 4px; cursor: pointer;">📂
+                Load gemini.js</button>
+            <button type="button" onclick="saveGeminiJs()"
+                style="flex: 1; padding: 8px 12px; font-size: 0.85em; background-color: transparent; border: 1px solid var(--accent-color); color: var(--accent-color); font-weight: bold; border-radius: 4px; cursor: pointer;">💾
+                Save gemini.js</button>
+        </div>
+
+        <hr style="border-color: var(--border-color); width: 100%; margin: 10px 0;">
+
+        <h3>🖼️ Sample Image Load</h3>
+        <div class="image-preview-box" id="previewContainer">
+            <span style="color: var(--border-color);">이미지를 드래그하거나 선택하세요</span>
+        </div>
+        <input type="file" id="imageFileInput" accept="image/*">
+
+        <button id="extractPromptBtn" style="width: 100%; margin-top: 15px;">⚡ 프롬프트 생성 분석 시작</button>
+
+        <div class="loader" id="loadingIndicator">
+            <div class="spinner"></div>
+            <span id="loaderText">Gemini가 이미지를 분석하여 태그를 추출하는 중...</span>
+        </div>
+    </div>
+
+    <div class="panel right-panel">
+        <h2>📄 Generated AI Prompts</h2>
+
+        <div>
+            <label>Master Prompt (태그 기반 외형 묘사 추출 결과)</label>
+            <textarea id="outputPrompt" readonly placeholder="분석이 완료되면 이곳에 NovelAI 콤마 분리형 태그 스타일로 출력됩니다."></textarea>
+        </div>
+
+        <div>
+            <label>Raw AI Analysis (상세 분석 설명 원문)</label>
+            <textarea id="outputAnalysis" readonly placeholder="Gemini의 오리지널 시각 분석 설명 피드백입니다."
+                style="min-height: 200px;"></textarea>
+        </div>
+
+        <div class="flex-row">
+            <button onclick="copyText('outputPrompt')" class="success-btn" style="flex: 1;">📋 프롬프트 카피</button>
+            <button onclick="copyText('outputAnalysis')" class="success-btn"
+                style="flex: 1; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color);">📋
+                분석문 카피</button>
+            <button id="applyToParentBtn" class="success-btn"
+                style="flex: 1; background-color: var(--accent-color); display: none;">🎯 매니저에 적용</button>
+        </div>
+    </div>
+
+    <script>
+        // Setup state variables
+        let base64ImageData = null;
+        let imageMimeType = null;
+
+        // Safe parent window access helper (prevents Same-Origin Policy crashes on local files)
+        let parentWindow = null;
+        let parentConfig = null;
+        let parentHasImport = false;
+        let parentAccessible = false;
+
+        try {
+            parentWindow = window.opener || (window.parent !== window ? window.parent : null);
+            if (parentWindow) {
+                // Try reading a property to trigger SecurityError if cross-origin
+                parentConfig = parentWindow.geminiConfig;
+                parentHasImport = typeof parentWindow.importMasterPrompt === 'function';
+                parentAccessible = true;
+            }
+        } catch (e) {
+            console.warn("Same-Origin Policy blocked direct access to parent window. Local configuration and fallback messaging will be used.", e);
+        }
+
+        // Determine active config hierarchy (Parent Config -> Local Script window.geminiConfig -> localStorage -> Defaults)
+        let activeConfig = {};
+        if (parentConfig) {
+            activeConfig = parentConfig;
+        } else if (window.geminiConfig) {
+            activeConfig = window.geminiConfig;
+        } else {
+            activeConfig = {
+                apiKey: localStorage.getItem('ag_extractor_key') || '',
+                modelName: localStorage.getItem('ag_extractor_model') || 'gemini-2.5-flash',
+                apiVersion: 'v1beta'
+            };
+        }
+
+        document.getElementById('apiKeyInput').value = activeConfig.apiKey || '';
+        document.getElementById('modelInput').value = activeConfig.modelName || 'gemini-3.5-flash';
+        document.getElementById('versionInput').value = activeConfig.apiVersion || 'v1beta';
+
+        // Show and bind "Apply to Parent" button if parentWindow exists
+        if (parentWindow) {
+            const applyBtn = document.getElementById('applyToParentBtn');
+            applyBtn.style.display = 'inline-block';
+            applyBtn.addEventListener('click', function () {
+                const promptVal = document.getElementById('outputPrompt').value.trim();
+                if (!promptVal) {
+                    alert("추출된 마스터 프롬프트가 없습니다.");
+                    return;
+                }
+                if (parentAccessible && parentHasImport) {
+                    try {
+                        parentWindow.importMasterPrompt(promptVal);
+                        alert("성공적으로 적용되었습니다!");
+                        if (window.opener) {
+                            window.close();
+                        }
+                    } catch (e) {
+                        alert("부모 창으로 적용 중 에러 발생: " + e.message);
+                    }
+                } else {
+                    // Fallback to postMessage (works cross-origin and on file://)
+                    try {
+                        parentWindow.postMessage({
+                            type: 'importMasterPrompt',
+                            promptText: promptVal
+                        }, '*');
+                        alert("부모 창으로 적용 메시지를 전송했습니다.");
+                        if (window.opener) {
+                            window.close();
+                        }
+                    } catch (e) {
+                        alert("부모 창으로 메시지 전송 중 에러 발생: " + e.message);
+                    }
+                }
+            });
+        }
+
+        // Save gemini.js to file
+        function saveGeminiJs() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const modelName = document.getElementById('modelInput').value.trim();
+            const apiVersion = document.getElementById('versionInput').value.trim();
+
+            const jsContent = `/* Data/gemini.js */\n\nwindow.geminiConfig = {\n  apiKey: '${apiKey}',\n  modelName: '${modelName}',\n  thinkingLevel: 'low',\n  apiVersion: '${apiVersion}'\n};\n`;
+
+            const blob = new Blob([jsContent], { type: "application/javascript" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'gemini.js';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Load gemini.js from file
+        document.getElementById('geminiJsFileInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const text = event.target.result;
+                try {
+                    const match = text.match(/window\.geminiConfig\s*=\s*(\{[\s\S]*?\});?/);
+                    if (match) {
+                        const parsedConfig = new Function(`return ${match[1]}`)();
+
+                        document.getElementById('apiKeyInput').value = parsedConfig.apiKey || '';
+                        document.getElementById('modelInput').value = parsedConfig.modelName || 'gemini-3.5-flash';
+                        document.getElementById('versionInput').value = parsedConfig.apiVersion || 'v1beta';
+
+                        localStorage.setItem('ag_extractor_key', parsedConfig.apiKey || '');
+                        localStorage.setItem('ag_extractor_model', parsedConfig.modelName || 'gemini-3.5-flash');
+
+                        if (parentWindow) {
+                            if (parentAccessible) {
+                                try {
+                                    parentWindow.geminiConfig = {
+                                        ...parentWindow.geminiConfig,
+                                        ...parsedConfig
+                                    };
+                                    if (typeof parentWindow.syncGeminiInputsFromConfig === 'function') {
+                                        parentWindow.syncGeminiInputsFromConfig();
+                                    }
+                                } catch (e) {
+                                    console.error("부모 창 설정 동기화 실패:", e);
+                                }
+                            } else {
+                                // Fallback to postMessage to sync parent config
+                                try {
+                                    parentWindow.postMessage({
+                                        type: 'syncGeminiConfig',
+                                        config: parsedConfig
+                                    }, '*');
+                                } catch (e) {
+                                    console.error("부모 창 설정 동기화 메시지 전송 실패:", e);
+                                }
+                            }
+                        }
+
+                        alert("gemini.js 설정을 성공적으로 불러왔습니다!");
+                    } else {
+                        throw new Error("window.geminiConfig 구조를 찾을 수 없습니다.");
+                    }
+                } catch (err) {
+                    alert("설정 파일 파싱 실패: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Handle Image loading and base64 parsing
+        document.getElementById('imageFileInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            imageMimeType = file.type;
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                base64ImageData = event.target.result.split(',')[1];
+                const previewContainer = document.getElementById('previewContainer');
+                previewContainer.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Main action: Request to Gemini API
+        document.getElementById('extractPromptBtn').addEventListener('click', async function () {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const model = document.getElementById('modelInput').value.trim();
+            const version = document.getElementById('versionInput').value.trim();
+
+            if (!apiKey) {
+                alert("Gemini API Key를 입력해주세요.");
+                return;
+            }
+            if (!base64ImageData) {
+                alert("분석할 샘플 이미지를 먼저 업로드해주세요.");
+                return;
+            }
+
+            // Save key settings
+            localStorage.setItem('ag_extractor_key', apiKey);
+            localStorage.setItem('ag_extractor_model', model);
+
+            // UI loading start
+            const btn = document.getElementById('extractPromptBtn');
+            const loader = document.getElementById('loadingIndicator');
+            btn.disabled = true;
+            loader.style.display = 'flex';
+
+            // Define Structural Prompt Instruction for Image-to-Prompt Converter
+            const systemInstruction =
+                "You are an expert AI image prompt engineer for generators like NovelAI, Midjourney, and Stable Diffusion.\n" +
+                "Analyze the provided sample image and convert its visual features into high-quality generator prompts.\n\n" +
+                "Your response must strictly separate into TWO parts using the delimiter '---SPLIT---':\n" +
+                "1. First Part (Prompts): Provide a detailed list of English prompt tags separated by commas, mimicking danbooru/NovelAI tags. Include core subject, costume details, hair style/color, facial expression, artistic style, color palette, and framing. Do not write full sentences here.\n" +
+                "2. Second Part (Detailed Analysis): Provide a clean Korean analysis descriptive breakdown of the character and aesthetic features.\n\n" +
+                "Example Format:\n" +
+                "1girl, chibi, masterwork, cyberpunk maid... \n" +
+                "---SPLIT---\n" +
+                "이 캐릭터는 사이버펑크 스타일의 메이드 복장을 하고 있으며...";
+
+            const endpoint = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: systemInstruction },
+                        {
+                            inlineData: {
+                                mimeType: imageMimeType,
+                                data: base64ImageData
+                            }
+                        }
+                    ]
+                }]
+            };
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    throw new Error(result.error.message || "API Execution Error");
+                }
+
+                const aiText = result.candidates[0].content.parts[0].text;
+
+                // Parse response content using the split design pattern
+                if (aiText.includes('---SPLIT---')) {
+                    const parts = aiText.split('---SPLIT---');
+                    document.getElementById('outputPrompt').value = parts[0].trim();
+                    document.getElementById('outputAnalysis').value = parts[1].trim();
+                } else {
+                    document.getElementById('outputPrompt').value = aiText.trim();
+                    document.getElementById('outputAnalysis').value = "구분자 파싱에 실패했습니다. 전체 아웃풋 데이터가 상단에 출력됩니다.";
+                }
+
+            } catch (error) {
+                alert("분석 중 오류 발생: " + error.message);
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                loader.style.display = 'none';
+            }
+        });
+
+        // Utility: Copy text inside targets
+        function copyText(elementId) {
+            const target = document.getElementById(elementId);
+            if (!target.value) return;
+
+            navigator.clipboard.writeText(target.value).then(() => {
+                alert("내용이 클립보드에 복사되었습니다!");
+            }).catch(err => {
+                alert("복사 실패: " + err);
+            });
+        }
+    </script>
+</body>
+
+</html>

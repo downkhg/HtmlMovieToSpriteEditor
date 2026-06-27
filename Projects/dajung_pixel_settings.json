@@ -1,0 +1,64 @@
+{
+  "characterId": "dajung_NeoMaid_2d",
+  "states": [
+    {
+      "name": "idle",
+      "loop": true,
+      "action": "standing breathing pose",
+      "status": "stable"
+    },
+    {
+      "name": "walk",
+      "loop": true,
+      "action": "walking loop cycle",
+      "status": "experimental"
+    },
+    {
+      "name": "attack",
+      "loop": false,
+      "action": "melee attack motion",
+      "status": "stable"
+    },
+    {
+      "name": "jump",
+      "loop": true,
+      "action": "jump animation",
+      "status": "experimental"
+    },
+    {
+      "name": "defeated",
+      "loop": true,
+      "action": "defeated animation",
+      "status": "stable"
+    },
+    {
+      "name": "hurt",
+      "loop": true,
+      "action": "hurt animation",
+      "status": "experimental"
+    },
+    {
+      "name": "run",
+      "loop": true,
+      "action": "run animation",
+      "status": "experimental"
+    },
+    {
+      "name": "ranged attack",
+      "loop": true,
+      "action": "ranged attack motion",
+      "status": "experimental"
+    }
+  ],
+  "prompt": "2d game character, chibi anime style, cute Neo-Maid girl, twin long black ponytails, pink heart antennas headband, purple and white maid outfit with glowing neon pink tech patterns, thigh-high socks, pink sneakers, holding a futuristic pink holographic screen. Full body shot, vibrant retro cyberpunk colors,6 heads tall",
+  "chromaColor": "#00ff00",
+  "tolerance": "40",
+  "softEdge": "1.5",
+  "cclNoise": "16",
+  "audioSpecifications": {
+    "description": "Video & Audio Specifications: Isolated 2D game sprite animation loop video clip, green screen chroma key background.",
+    "bgmPolicy": "Strictly NO background music (No BGM)",
+    "sfxSync": "High-quality game sound effects (SFX) synchronized with the character's movement",
+    "audioQuality": "Clean distinct action audio design, transparent background ambient noise"
+  }
+}

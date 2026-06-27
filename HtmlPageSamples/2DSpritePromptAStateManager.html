@@ -1,0 +1,801 @@
+<!--
+프롬프터: downkhg@gmail.com
+모델: gemini
+에이전트: Antigravity
+마지막수정사항: 경로 및 파일 설명 정정, 프로젝트/캐릭터 리드미 분리 및 자동화 스킬 추가
+-->
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Sprite Prompt & State Manager</title>
+    <script src="../Data/gemini.js"></script>
+    <style>
+        :root {
+            --bg-color: #1e1e2e;
+            --panel-bg: #282a36;
+            --text-color: #f8f8f2;
+            --accent-color: #ff79c6;
+            --border-color: #44475a;
+            --input-bg: #383a59;
+            --success-color: #50fa7b;
+            --highlight-bg: #343746;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .panel {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .left-panel {
+            border-right: 2px solid var(--border-color);
+            background-color: var(--panel-bg);
+        }
+
+        .right-panel {
+            background-color: var(--bg-color);
+        }
+
+        /* Typography */
+        h2,
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        /* Inputs */
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        textarea:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .flex-row input[type="text"],
+        .flex-row input[type="number"],
+        .flex-row select {
+            margin-bottom: 0;
+        }
+
+        /* Cards & Containers */
+        .state-card {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .preset-container {
+            background-color: var(--highlight-bg);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff5555;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Buttons */
+        button {
+            padding: 10px 15px;
+            background-color: var(--accent-color);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .success-btn {
+            background-color: var(--success-color);
+            color: #282a36;
+        }
+
+        /* Output */
+        pre {
+            background-color: var(--panel-bg);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+            flex-grow: 1;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="panel left-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin: 0; border-left: 3px solid var(--accent-color); padding-left: 10px;">🔧 Sprite Configurator</h2>
+            <button type="button" onclick="openVideoSlicer()" class="btn-outline" style="padding: 6px 12px; font-size: 0.85em; cursor: pointer;">🎞️ Video Slicer</button>
+        </div>
+
+        <div>
+            <label>Character ID</label>
+            <input type="text" id="characterId" value="dajung_NeoMaid_2d">
+        </div>
+
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <label style="margin-bottom: 0;">Master Prompt (Global Setup)</label>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <button type="button" onclick="openAIGeneration()"
+                        style="padding: 4px 8px; font-size: 0.85em; background-color: var(--accent-color); color: #fff; border: none; border-radius: 4px; cursor: pointer;"
+                        id="aiGenBtn">⚡ AI Generation</button>
+                </div>
+            </div>
+            <textarea id="masterPrompt"
+                style="margin-bottom: 10px;">2d game character, chibi anime style, cute Neo-Maid girl, twin long black ponytails, pink heart antennas headband, purple and white maid outfit with glowing neon pink tech patterns, thigh-high socks, pink sneakers, holding a futuristic pink holographic screen. Full body shot, vibrant retro cyberpunk colors, 6 heads tall</textarea>
+
+            <label style="font-size: 0.8em; margin-bottom: 5px; color: #a0a0b0;">Generated Master Prompt List</label>
+            <select id="masterPromptSelect" style="margin-bottom: 15px;">
+                <option
+                    value="2d game character, chibi anime style, cute Neo-Maid girl, twin long black ponytails, pink heart antennas headband, purple and white maid outfit with glowing neon pink tech patterns, thigh-high socks, pink sneakers, holding a futuristic pink holographic screen. Full body shot, vibrant retro cyberpunk colors, 6 heads tall">
+                    Default (Chibi Neo-Maid)</option>
+            </select>
+        </div>
+
+        <h3>🎬 Animation States</h3>
+
+        <div id="statesContainer"></div>
+
+        <div class="preset-container">
+            <label style="margin-bottom: 10px; color: var(--text-color);">🚀 오토 파일럿 템플릿 빌더</label>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="addPresetState()" style="flex: 2;">⚡ 상태 자동 생성 (순차 추가)</button>
+                <button onclick="addCustomAutoState()" class="btn-outline" style="flex: 1.2;">🤖 액션 연계 파생</button>
+                <button onclick="addBlankState()" class="btn-outline" style="flex: 0.8;">+ 빈 상태</button>
+            </div>
+        </div>
+
+        <hr style="border-color: var(--border-color); width: 100%; margin: 20px 0;">
+
+        <h3>🎨 Chroma & Render Specs</h3>
+        <div class="flex-row">
+            <div>
+                <label>Chroma Color</label>
+                <input type="color" id="chromaColor" value="#00ff00" style="width: 50px; height: 38px; padding: 0;">
+            </div>
+            <div>
+                <label>Tolerance</label>
+                <input type="number" id="tolerance" value="40">
+            </div>
+            <div>
+                <label>Soft Edge</label>
+                <input type="number" id="softEdge" value="1.5" step="0.1">
+            </div>
+            <div>
+                <label>CCL Noise</label>
+                <input type="number" id="cclNoise" value="16">
+            </div>
+        </div>
+
+        <hr style="border-color: var(--border-color); width: 100%; margin: 20px 0;">
+
+        <!--h3>🤖 Gemini API Settings</h3>
+        <div>
+            <label>API Key</label>
+            <input type="password" id="geminiApiKey" placeholder="AIzaSy... (API Key)">
+        </div>
+        <div class="flex-row">
+            <div style="flex: 2;">
+                <label>Model Name</label>
+                <input type="text" id="geminiModelName" value="gemini-3.5-flash">
+            </div>
+            <div style="flex: 1;">
+                <label>Version</label>
+                <input type="text" id="geminiApiVersion" value="v1beta">
+            </div>
+        </div>
+        <div class="flex-row" style="margin-top: 10px;">
+            <input type="file" id="geminiJsFileInput" accept=".js" style="display: none;">
+            <button type="button" onclick="document.getElementById('geminiJsFileInput').click()" class="btn-outline" style="flex: 1; padding: 8px 12px; font-size: 0.9em;">📂 Load gemini.js</button>
+            <button type="button" onclick="saveGeminiJs()" class="btn-outline" style="flex: 1; padding: 8px 12px; font-size: 0.9em;">💾 Save gemini.js</button>
+        </div-->
+
+    </div>
+
+    <div class="panel right-panel">
+        <h2>📄 Live JSON Output</h2>
+        <pre id="jsonOutput"></pre>
+
+        <div class="action-buttons">
+            <button onclick="copyJSON()">📋 Copy JSON</button>
+            <button onclick="downloadJSON()" class="success-btn">💾 Download .json</button>
+        </div>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div id="aiModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+        <div
+            style="background-color: var(--panel-bg); width: 90%; max-width: 1000px; height: 85%; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-color); position: relative;">
+            <div
+                style="padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); background-color: var(--bg-color);">
+                <h3 style="margin: 0; color: var(--accent-color);">🖼️ Gemini Image to Prompt Extractor</h3>
+                <button type="button" onclick="closeAIModal()"
+                    style="background: #ff5555; color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕
+                    Close</button>
+            </div>
+            <iframe id="aiFrame" src="about:blank" style="flex: 1; border: none; width: 100%; height: 100%;"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Preset Definitions
+        const STATE_PRESETS = {
+            idle: { name: "idle", loop: true, action: "standing breathing pose", status: "stable", statePrompt: "standing, idle breathing cycle, looking forward, calm expression" },
+            walk: { name: "walk", loop: true, action: "walking loop cycle", status: "stable", statePrompt: "walking animation, horizontal movement, legs alternating" },
+            run: { name: "run", loop: true, action: "running sprint cycle", status: "experimental", statePrompt: "running fast, dynamic dash, forward momentum, hair blowing" },
+            attack: { name: "attack", loop: false, action: "melee strike motion", status: "stable", statePrompt: "swinging weapon, striking pose, slash effect, dynamic action stance" },
+            range_attack: { name: "range_attack", loop: false, action: "ranged shooting motion", status: "experimental", statePrompt: "firing weapon, targeting laser, aiming forward, projectile launch frame" },
+            jump: { name: "jump", loop: false, action: "mid-air jump pose", status: "stable", statePrompt: "jumping up, airborne, rising momentum, knees bent" },
+            hurt: { name: "hurt", loop: false, action: "damaged hit-stun frame", status: "experimental", statePrompt: "knocked back, taking damage, winced expression, hit impact effect" },
+            defeated: { name: "defeated", loop: true, action: "downed defeated animation", status: "stable", statePrompt: "lying on ground, defeated, faint halo or stars, static frame after fall" }
+        };
+
+        // Production Sequence Order
+        const PRESET_SEQUENCE = ['idle', 'walk', 'run', 'attack', 'range_attack', 'jump', 'hurt', 'defeated'];
+
+        // Initial Data Structure
+        let configData = {
+            characterId: document.getElementById('characterId').value,
+            masterPrompt: document.getElementById('masterPrompt').value,
+            states: [],
+            chromaColor: document.getElementById('chromaColor').value,
+            tolerance: document.getElementById('tolerance').value,
+            softEdge: document.getElementById('softEdge').value,
+            cclNoise: document.getElementById('cclNoise').value,
+            audioSpecifications: {
+                description: "Video & Audio Specifications: Isolated 2D game sprite animation loop video clip, green screen chroma key background.",
+                bgmPolicy: "Strictly NO background music (No BGM)",
+                sfxSync: "High-quality game sound effects (SFX) synchronized with the character's movement",
+                audioQuality: "Clean distinct action audio design, transparent background ambient noise"
+            }
+        };
+
+        // DOM Elements
+        const statesContainer = document.getElementById('statesContainer');
+        const jsonOutput = document.getElementById('jsonOutput');
+
+        // Event Listeners for global inputs
+        ['characterId', 'masterPrompt', 'chromaColor', 'tolerance', 'softEdge', 'cclNoise'].forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                configData[id] = e.target.value;
+                updateOutput();
+            });
+        });
+
+        // 1. Add Preset State Sequentially
+        function addPresetState() {
+            const currentCount = configData.states.length;
+            let newState = {};
+
+            if (currentCount < PRESET_SEQUENCE.length) {
+                const nextKey = PRESET_SEQUENCE[currentCount];
+                const template = STATE_PRESETS[nextKey];
+
+                newState = {
+                    id: Date.now() + Math.random(),
+                    name: template.name,
+                    loop: template.loop,
+                    action: template.action,
+                    status: template.status,
+                    statePrompt: template.statePrompt,
+                    locked: true
+                };
+            } else {
+                const customCount = configData.states.length - PRESET_SEQUENCE.length + 1;
+                const padIndex = customCount < 10 ? `0${customCount}` : customCount;
+
+                newState = {
+                    id: Date.now() + Math.random(),
+                    name: `action_${padIndex}`,
+                    loop: false,
+                    action: `custom action sequence ${customCount}`,
+                    status: "experimental",
+                    statePrompt: `custom action gesture, dynamic frame ${customCount}`,
+                    locked: false
+                };
+            }
+
+            configData.states.push(newState);
+            renderStates();
+            updateOutput();
+
+            setTimeout(() => statesContainer.lastElementChild?.scrollIntoView({ behavior: 'smooth' }), 100);
+        }
+
+        // 2. Add Custom Auto Combo State
+        function addCustomAutoState() {
+            if (configData.states.length === 0) {
+                addPresetState();
+                return;
+            }
+
+            const lastState = configData.states[configData.states.length - 1];
+            let baseName = lastState.name;
+            let nextIndex = 2;
+
+            const match = lastState.name.match(/^(.*)_(\d+)$/);
+            if (match) {
+                baseName = match[1];
+                nextIndex = parseInt(match[2], 10) + 1;
+            }
+
+            const padZeroIndex = nextIndex < 10 ? `0${nextIndex}` : nextIndex;
+
+            const autoState = {
+                id: Date.now() + Math.random(),
+                name: `${baseName}_${padZeroIndex}`,
+                loop: lastState.loop,
+                action: `${lastState.action} combo sequence ${nextIndex}`,
+                status: "experimental",
+                statePrompt: `${lastState.statePrompt}, combo chain follow-up, consecutive frame`,
+                locked: false
+            };
+
+            configData.states.push(autoState);
+            renderStates();
+            updateOutput();
+
+            setTimeout(() => statesContainer.lastElementChild?.scrollIntoView({ behavior: 'smooth' }), 100);
+        }
+
+        // 3. Add Blank State
+        function addBlankState() {
+            const newState = {
+                id: Date.now() + Math.random(),
+                name: "custom_state",
+                loop: false,
+                action: "describe action here",
+                status: "experimental",
+                statePrompt: "action related tags here",
+                locked: false
+            };
+            configData.states.push(newState);
+            renderStates();
+            updateOutput();
+        }
+
+        // Delete a State
+        function deleteState(id) {
+            configData.states = configData.states.filter(s => s.id !== id);
+            renderStates();
+            updateOutput();
+        }
+
+        // Toggle Prompt Lock
+        function toggleLock(id) {
+            const state = configData.states.find(s => s.id === id);
+            if (state) {
+                state.locked = !state.locked;
+                renderStates();
+            }
+        }
+
+        // Update specific State field without complete DOM destruction to preserve focus
+        function updateStateField(id, field, value) {
+            const state = configData.states.find(s => s.id === id);
+            if (state) {
+                state[field] = value;
+                if (field === 'action' && state.locked) {
+                    state.statePrompt = `${value}, dynamic motion, focused`;
+                    const card = document.querySelector(`.state-card[data-id="${id}"]`);
+                    if (card) {
+                        const textarea = card.querySelector('.state-prompt');
+                        if (textarea) textarea.value = state.statePrompt;
+                    }
+                }
+                updateOutput();
+            }
+        }
+
+        // Render State Cards with direct event binding
+        function renderStates() {
+            statesContainer.innerHTML = '';
+            configData.states.forEach(state => {
+                const card = document.createElement('div');
+                card.className = 'state-card';
+                card.setAttribute('data-id', state.id);
+                card.innerHTML = `
+                    <button class="delete-btn" onclick="deleteState(${state.id})">X</button>
+                    <div class="flex-row">
+                        <div style="flex:1">
+                            <label>Name</label>
+                            <input type="text" class="state-name" value="${state.name}">
+                        </div>
+                        <div style="flex:1">
+                            <label>Action</label>
+                            <input type="text" class="state-action" value="${state.action}">
+                        </div>
+                    </div>
+                    <div class="flex-row">
+                        <div>
+                            <label>Loop</label>
+                            <select class="state-loop">
+                                <option value="true" ${state.loop ? 'selected' : ''}>True</option>
+                                <option value="false" ${!state.loop ? 'selected' : ''}>False</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Status</label>
+                            <select class="state-status">
+                                <option value="stable" ${state.status === 'stable' ? 'selected' : ''}>Stable</option>
+                                <option value="experimental" ${state.status === 'experimental' ? 'selected' : ''}>Experimental</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label>State Prompt (Frame Specific)</label>
+                        <div style="display:flex; gap:10px; align-items:start;">
+                            <textarea class="state-prompt" ${state.locked ? 'disabled' : ''}>${state.statePrompt}</textarea>
+                            <button class="btn-outline" onclick="toggleLock(${state.id})">
+                                ${state.locked ? '🔒 Unlock' : '🔓 Lock'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                // Non-disruptive event listeners to keep input focus alive
+                card.querySelector('.state-name').addEventListener('input', (e) => updateStateField(state.id, 'name', e.target.value));
+                card.querySelector('.state-action').addEventListener('input', (e) => updateStateField(state.id, 'action', e.target.value));
+                card.querySelector('.state-loop').addEventListener('change', (e) => updateStateField(state.id, 'loop', e.target.value === 'true'));
+                card.querySelector('.state-status').addEventListener('change', (e) => updateStateField(state.id, 'status', e.target.value));
+                card.querySelector('.state-prompt').addEventListener('input', (e) => updateStateField(state.id, 'statePrompt', e.target.value));
+
+                statesContainer.appendChild(card);
+            });
+        }
+
+        // Update JSON Preview
+        function updateOutput() {
+            const outputData = {
+                ...configData,
+                states: configData.states.map(({ id, locked, ...rest }) => rest)
+            };
+            jsonOutput.textContent = JSON.stringify(outputData, null, 2);
+            sendConfigToVideoSlicer();
+        }
+
+        // Copy to Clipboard
+        function copyJSON() {
+            const text = jsonOutput.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("JSON이 클립보드에 복사되었습니다!");
+            }).catch(err => {
+                alert("복사 실패: " + err);
+            });
+        }
+
+        // Download JSON File
+        function downloadJSON() {
+            const text = jsonOutput.textContent;
+            const blob = new Blob([text], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${configData.characterId}_config.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Gemini Configuration Sync Functions
+        function syncGeminiInputsFromConfig() {
+            if (window.geminiConfig) {
+                document.getElementById('geminiApiKey').value = window.geminiConfig.apiKey || '';
+                document.getElementById('geminiModelName').value = window.geminiConfig.modelName || 'gemini-3.5-flash';
+                document.getElementById('geminiApiVersion').value = window.geminiConfig.apiVersion || 'v1beta';
+            }
+        }
+
+        function syncConfigFromInputs() {
+            if (!window.geminiConfig) {
+                window.geminiConfig = {};
+            }
+            window.geminiConfig.apiKey = document.getElementById('geminiApiKey').value.trim();
+            window.geminiConfig.modelName = document.getElementById('geminiModelName').value.trim();
+            window.geminiConfig.apiVersion = document.getElementById('geminiApiVersion').value.trim();
+        }
+
+        // Save gemini.js to file
+        function saveGeminiJs() {
+            syncConfigFromInputs();
+            const jsContent = `/* Data/gemini.js */\n\nwindow.geminiConfig = {\n  apiKey: '${window.geminiConfig.apiKey}',\n  modelName: '${window.geminiConfig.modelName}',\n  thinkingLevel: '${window.geminiConfig.thinkingLevel || "low"}',\n  apiVersion: '${window.geminiConfig.apiVersion || "v1beta"}'\n};\n`;
+
+            const blob = new Blob([jsContent], { type: "application/javascript" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'gemini.js';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Load gemini.js from file
+        document.getElementById('geminiJsFileInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const text = event.target.result;
+                try {
+                    const match = text.match(/window\.geminiConfig\s*=\s*(\{[\s\S]*?\});?/);
+                    if (match) {
+                        const parsedConfig = new Function(`return ${match[1]}`)();
+                        window.geminiConfig = { ...window.geminiConfig, ...parsedConfig };
+                        syncGeminiInputsFromConfig();
+                        alert("gemini.js 설정을 성공적으로 불러왔습니다!");
+                    } else {
+                        throw new Error("window.geminiConfig 구조를 찾을 수 없습니다.");
+                    }
+                } catch (err) {
+                    alert("설정 파일 파싱 실패: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Video Slicer Communication
+        let videoSlicerWindow = null;
+
+        function openVideoSlicer() {
+            if (window.parent && window.parent !== window) {
+                // If running in an iframe, ask parent to close the modal
+                window.parent.postMessage({ type: 'closePromptManagerModal' }, '*');
+            } else if (window.opener && !window.opener.closed) {
+                // If running as a popup window, focus opener and close this window
+                window.opener.focus();
+                window.close();
+            } else {
+                videoSlicerWindow = window.open('VideoStateSpriteCreator.html', '_blank', 'opener');
+            }
+        }
+
+        function sendConfigToVideoSlicer() {
+            let target = null;
+            if (videoSlicerWindow && !videoSlicerWindow.closed) {
+                target = videoSlicerWindow;
+            } else if (window.parent && window.parent !== window) {
+                target = window.parent;
+            }
+
+            if (target) {
+                target.postMessage({
+                    type: 'syncFromPromptManager',
+                    configData: configData
+                }, '*');
+            }
+        }
+
+        function handleSyncFromVideoSlicer(incomingConfig) {
+            if (!incomingConfig) return;
+
+            if (incomingConfig.characterId) {
+                configData.characterId = incomingConfig.characterId;
+                document.getElementById('characterId').value = configData.characterId;
+            }
+            if (incomingConfig.masterPrompt) {
+                configData.masterPrompt = incomingConfig.masterPrompt;
+                document.getElementById('masterPrompt').value = configData.masterPrompt;
+            }
+            if (incomingConfig.chromaKey) {
+                configData.chromaColor = incomingConfig.chromaKey.color || '#00ff00';
+                configData.tolerance = incomingConfig.chromaKey.tolerance || 40;
+                configData.softEdge = incomingConfig.chromaKey.softEdge || 1.5;
+
+                document.getElementById('chromaColor').value = configData.chromaColor;
+                document.getElementById('tolerance').value = configData.tolerance;
+                document.getElementById('softEdge').value = configData.softEdge;
+            }
+            if (incomingConfig.cclNoise !== undefined) {
+                configData.cclNoise = incomingConfig.cclNoise;
+                document.getElementById('cclNoise').value = configData.cclNoise;
+            }
+            if (incomingConfig.states) {
+                // Map incoming states from Video Slicer while preserving existing prompts if name matches
+                configData.states = incomingConfig.states.map((s, idx) => {
+                    const existing = configData.states.find(es => es.name === s.name);
+                    return {
+                        id: s.id || (existing ? existing.id : (Date.now() + idx + Math.random())),
+                        name: s.name,
+                        loop: s.loop !== undefined ? s.loop : false,
+                        action: s.action || (existing ? existing.action : `${s.name} action motion`),
+                        status: s.status || (existing ? existing.status : "stable"),
+                        statePrompt: s.statePrompt || (existing ? existing.statePrompt : `${s.action || s.name}, dynamic motion, focused`),
+                        locked: s.locked !== undefined ? s.locked : (existing ? existing.locked : true)
+                    };
+                });
+            }
+
+            renderStates();
+            updateOutput();
+        }
+
+        // AI Generation Popup Controls
+        function openAIGeneration() {
+            syncConfigFromInputs(); // Sync changes to config window before opening
+            if (window.location.protocol === 'file:') {
+                // On file:// protocol, fall back to a clean browser popup window to avoid CORS iframe blocks
+                const popupWidth = 1000;
+                const popupHeight = 800;
+                const left = (window.screen.width - popupWidth) / 2;
+                const top = (window.screen.height - popupHeight) / 2;
+
+                const popup = window.open('ImageToPrompte.html', 'ImageToPromptPopup',
+                    `width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+
+                if (popup) {
+                    popup.focus();
+                } else {
+                    window.open('ImageToPrompte.html', '_blank');
+                }
+            } else {
+                const modal = document.getElementById('aiModal');
+                const frame = document.getElementById('aiFrame');
+                frame.src = 'ImageToPrompte.html';
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeAIModal() {
+            const modal = document.getElementById('aiModal');
+            const frame = document.getElementById('aiFrame');
+            frame.src = 'about:blank';
+            modal.style.display = 'none';
+        }
+
+        window.importMasterPrompt = function (promptText) {
+            document.getElementById('masterPrompt').value = promptText;
+            configData.masterPrompt = promptText;
+            updateOutput();
+
+            // Add to dropdown list
+            const selectEl = document.getElementById('masterPromptSelect');
+            const opt = document.createElement('option');
+            opt.value = promptText;
+            const dateStr = new Date().toLocaleTimeString();
+            const shortText = promptText.substring(0, 40) + (promptText.length > 40 ? '...' : '');
+            opt.textContent = `AI Generated (${dateStr}): ${shortText}`;
+            selectEl.appendChild(opt);
+            selectEl.value = promptText;
+
+            closeAIModal(); // Close the modal on successful import
+        };
+
+        // Listen for postMessage from the popup iframe (supports file:// and cross-origin communication)
+        window.addEventListener('message', function (event) {
+            if (event.data && event.data.type === 'importMasterPrompt') {
+                window.importMasterPrompt(event.data.promptText);
+            } else if (event.data && event.data.type === 'syncGeminiConfig') {
+                window.geminiConfig = {
+                    ...window.geminiConfig,
+                    ...event.data.config
+                };
+                syncGeminiInputsFromConfig();
+            } else if (event.data && event.data.type === 'videoSlicerReady') {
+                videoSlicerWindow = event.source;
+                sendConfigToVideoSlicer();
+            } else if (event.data && event.data.type === 'syncFromVideoSlicer') {
+                handleSyncFromVideoSlicer(event.data.configData);
+            }
+        });
+
+        // Dropdown selection change listener
+        document.getElementById('masterPromptSelect').addEventListener('change', function (e) {
+            const val = e.target.value;
+            document.getElementById('masterPrompt').value = val;
+            configData.masterPrompt = val;
+            updateOutput();
+        });
+
+        // Initialize with sequence automation loader
+        syncGeminiInputsFromConfig();
+        addPresetState();
+
+        // Check if loaded inside parent iframe or as a popup window and customize button
+        if ((window.parent && window.parent !== window) || (window.opener && !window.opener.closed)) {
+            const btn = document.querySelector('button[onclick="openVideoSlicer()"]');
+            if (btn) {
+                btn.innerHTML = '✕ 닫기';
+            }
+        }
+
+        // Notify parent/opener that we are ready to receive initial configuration
+        const parentWindow = window.opener || (window.parent !== window ? window.parent : null);
+        if (parentWindow) {
+            parentWindow.postMessage({ type: 'videoSlicerReady' }, '*');
+        }
+    </script>
+</body>
+
+</html>
