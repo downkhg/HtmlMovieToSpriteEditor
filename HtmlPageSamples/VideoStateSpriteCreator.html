@@ -2,7 +2,7 @@
 프롬프터: downkhg@gmail.com
 모델: gemini
 에이전트: Antigravity
-마지막수정사항: 경로 및 파일 설명 정정, 프로젝트/캐릭터 리드미 분리 및 자동화 스킬 추가
+마지막수정사항: 스토리보드 카드 고정 크기(190x145) 적용, 가로 폭 좁을 시 슬라이더 스크롤 및 세로 여유 시 다행 줄바꿈 레이아웃 구현
 -->
 <!DOCTYPE html>
 <html lang="ko">
@@ -47,6 +47,7 @@
             margin: 0;
             padding: 0;
             font-family: var(--font-main);
+            font-size: 13px;
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex;
@@ -60,21 +61,23 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 30px;
+            padding: 6px 16px;
             background-color: var(--panel-bg);
             border-bottom: 2px solid var(--border-color);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
             z-index: 10;
+            flex-shrink: 0;
+            height: 44px;
         }
 
         .header-title-group {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
         }
 
         .logo-icon {
-            font-size: 2.2em;
+            font-size: 1.3em;
             background: linear-gradient(135deg, var(--accent-color), var(--info-color));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -84,35 +87,37 @@
 
         header h1 {
             margin: 0;
-            font-size: 1.6em;
+            font-size: 1.05em;
             font-weight: 700;
             font-family: var(--font-title);
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
         }
 
         .header-actions {
             display: flex;
-            gap: 12px;
+            gap: 6px;
+            align-items: center;
         }
 
         /* Layout Grid */
         .main-container {
-            display: flex;
             flex: 1;
-            height: calc(100vh - 75px);
+            display: flex;
+            height: calc(100vh - 46px);
+            min-height: 0;
             overflow: hidden;
         }
 
         .left-panel {
-            width: 32%;
-            min-width: 360px;
+            width: 28%;
+            min-width: 240px;
             background-color: var(--panel-bg);
-            border-right: 2px solid var(--border-color);
-            padding: 20px;
+            padding: 8px 10px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            overflow-y: auto;
+            gap: 8px;
+            height: 100%;
+            overflow: hidden;
         }
 
         .center-panel {
@@ -120,19 +125,437 @@
             display: flex;
             flex-direction: column;
             background-color: var(--bg-color);
+            min-width: 300px;
+            height: 100%;
             overflow: hidden;
         }
 
         .right-panel {
-            width: 25%;
-            min-width: 300px;
+            width: 27%;
+            min-width: 250px;
             background-color: var(--panel-bg);
-            border-left: 2px solid var(--border-color);
-            padding: 20px;
+            padding: 8px 10px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 8px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Side Panel Internal Tabs */
+        .side-panel-tabs-header {
+            display: flex;
+            background-color: var(--panel-accent);
+            border-radius: 5px;
+            padding: 2px;
+            gap: 3px;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .side-tab-btn {
+            flex: 1;
+            text-align: center;
+            padding: 4px 2px;
+            font-size: 0.78em;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 3px;
+            transition: all 0.15s ease;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .side-tab-btn:hover {
+            color: var(--text-color);
+        }
+
+        .side-tab-btn.active {
+            color: #ffffff;
+            background-color: var(--accent-color);
+            box-shadow: 0 2px 6px var(--accent-glow);
+        }
+
+        .side-tab-content {
+            display: none;
+            flex-direction: column;
+            flex: 1;
             overflow-y: auto;
+            min-height: 0;
+            padding-right: 4px;
+            gap: 8px;
+        }
+
+        .side-tab-content.active {
+            display: flex;
+        }
+
+        .side-tab-content::-webkit-scrollbar {
+            width: 5px;
+        }
+        .side-tab-content::-webkit-scrollbar-track {
+            background: var(--panel-bg);
+        }
+        .side-tab-content::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        .side-tab-content::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-color);
+        }
+
+        .left-player-controls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background-color: var(--panel-accent);
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        /* Resizable Splitters for 3-Panel Layout */
+        .panel-resizer {
+            width: 6px;
+            background-color: var(--border-color);
+            cursor: col-resize;
+            position: relative;
+            flex-shrink: 0;
+            z-index: 20;
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .panel-resizer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: -5px;
+            right: -5px;
+            z-index: 2;
+        }
+
+        .panel-resizer::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 36px;
+            border-left: 2px dotted var(--text-muted);
+            pointer-events: none;
+            opacity: 0.6;
+            transition: all 0.15s ease;
+        }
+
+        .panel-resizer:hover,
+        .panel-resizer.is-resizing {
+            background-color: var(--accent-color);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .panel-resizer:hover::before,
+        .panel-resizer.is-resizing::before {
+            border-left: 2px solid #ffffff;
+            opacity: 1;
+            height: 48px;
+        }
+
+        body.resizing-col {
+            cursor: col-resize !important;
+            user-select: none !important;
+        }
+
+        body.resizing-col * {
+            user-select: none !important;
+        }
+
+        /* Horizontal Row Resizers (Center Panel) */
+        .panel-row-resizer {
+            height: 6px;
+            background-color: var(--border-color);
+            cursor: row-resize;
+            position: relative;
+            flex-shrink: 0;
+            z-index: 15;
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .panel-row-resizer::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            bottom: -5px;
+            left: 0;
+            right: 0;
+            z-index: 2;
+        }
+
+        .panel-row-resizer::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 36px;
+            height: 2px;
+            border-top: 2px dotted var(--text-muted);
+            pointer-events: none;
+            opacity: 0.6;
+            transition: all 0.15s ease;
+        }
+
+        .panel-row-resizer:hover,
+        .panel-row-resizer.is-resizing {
+            background-color: var(--accent-color);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .panel-row-resizer:hover::before,
+        .panel-row-resizer.is-resizing::before {
+            border-top: 2px solid #ffffff;
+            opacity: 1;
+            width: 48px;
+        }
+
+        body.resizing-row {
+            cursor: row-resize !important;
+            user-select: none !important;
+        }
+
+        body.resizing-row * {
+            user-select: none !important;
+        }
+
+        /* Center Panel Section Layouts */
+        .center-panel .storyboard-section {
+            height: 250px;
+            min-height: 120px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Center Multi-Inspector Section (Middle) */
+        .center-inspector-section {
+            background-color: var(--panel-bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex: 1;
+            min-height: 160px;
+        }
+
+        .inspector-tabs-header {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--panel-accent);
+            padding: 0 16px;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .inspector-tab-btn {
+            padding: 8px 14px;
+            font-size: 0.85em;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s ease;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .inspector-tab-btn:hover {
+            color: var(--text-color);
+        }
+
+        .inspector-tab-btn.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+            background-color: rgba(255, 46, 117, 0.08);
+        }
+
+        .inspector-tab-content {
+            display: none;
+            flex: 1;
+            padding: 12px 18px;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .inspector-tab-content.active {
+            display: flex;
+        }
+
+        /* Tab 1: Preview & Filmstrip */
+        #inspectorTabPreview {
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .inspector-preview-col {
+            width: 170px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .inspector-preview-player-bar {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .inspector-filmstrip-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+            overflow: hidden;
+            background-color: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+        }
+
+        .filmstrip-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .filmstrip-track {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 6px 2px 8px 2px;
+            flex: 1;
+            align-items: center;
+            scroll-behavior: smooth;
+        }
+
+        .filmstrip-card {
+            flex: 0 0 68px;
+            height: 94px;
+            background: var(--panel-accent);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .filmstrip-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        .filmstrip-card.active-frame {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 8px var(--accent-glow);
+            background-color: rgba(255, 46, 117, 0.15);
+        }
+
+        .filmstrip-thumb {
+            width: 100%;
+            height: 60px;
+            object-fit: contain;
+            background: #000;
+            border-radius: 4px;
+            image-rendering: pixelated;
+        }
+
+        .filmstrip-card .frame-num {
+            font-size: 0.72em;
+            font-family: monospace;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        .filmstrip-card.active-frame .frame-num {
+            color: var(--accent-color);
+        }
+
+        /* Tab 2: Prompt Grid */
+        .inspector-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            align-content: start;
+            overflow-y: auto;
+        }
+
+        /* Center Live Animation Preview Canvas */
+        .center-preview-canvas-wrapper {
+            width: 130px;
+            height: 130px;
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            box-shadow: var(--card-shadow);
+            flex-shrink: 0;
+        }
+
+        .center-preview-canvas-wrapper.checkerboard-bg {
+            background-image: linear-gradient(45deg, #1c1c28 25%, transparent 25%),
+                              linear-gradient(-45deg, #1c1c28 25%, transparent 25%),
+                              linear-gradient(45deg, transparent 75%, #1c1c28 75%),
+                              linear-gradient(-45deg, transparent 75%, #1c1c28 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+            background-color: #12121c;
+        }
+
+        .center-preview-canvas-wrapper canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        /* Bottom Fixed Timeline */
+        .center-panel .timeline-section {
+            height: 200px;
+            min-height: 130px;
+            flex-shrink: 0;
+            padding: 12px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background-color: var(--panel-bg);
         }
 
         .left-panel>*,
@@ -168,12 +591,12 @@
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            margin-bottom: 12px;
+            gap: 3px;
+            margin-bottom: 5px;
         }
 
         label {
-            font-size: 0.85em;
+            font-size: 0.78em;
             font-weight: 600;
             color: var(--text-muted);
         }
@@ -183,14 +606,15 @@
         select,
         textarea {
             width: 100%;
-            padding: 10px 14px;
+            padding: 4px 8px;
+            height: 26px;
             background-color: var(--input-bg);
             border: 1px solid var(--border-color);
             color: var(--text-color);
-            border-radius: 6px;
-            font-size: 0.9em;
+            border-radius: 4px;
+            font-size: 0.82em;
             font-family: inherit;
-            transition: all 0.2s;
+            transition: all 0.15s;
         }
 
         input[type="text"]:focus,
@@ -198,12 +622,18 @@
         select:focus,
         textarea:focus {
             border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px var(--accent-glow);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        textarea {
+            height: auto;
+            min-height: 50px;
+            resize: vertical;
         }
 
         .flex-row {
             display: flex;
-            gap: 12px;
+            gap: 8px;
         }
 
         .flex-row>* {
@@ -212,29 +642,38 @@
 
         /* Buttons styling */
         button {
-            padding: 10px 18px;
+            padding: 4px 10px;
+            height: 26px;
             background-color: var(--accent-color);
             color: #fff;
             border: none;
-            border-radius: 6px;
-            font-size: 0.9em;
-            font-weight: 700;
+            border-radius: 4px;
+            font-size: 0.82em;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            gap: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+            user-select: none;
         }
 
         button:hover {
-            opacity: 0.9;
+            opacity: 0.92;
             transform: translateY(-1px);
         }
 
         button:active {
             transform: translateY(1px);
+        }
+
+        button.btn-icon {
+            padding: 3px 8px;
+            font-size: 0.82em;
+            height: 26px;
         }
 
         button.btn-outline {
@@ -251,7 +690,7 @@
         button.btn-success {
             background-color: var(--success-color);
             color: #0f0f16;
-            box-shadow: 0 4px 12px var(--success-glow);
+            box-shadow: 0 2px 8px var(--success-glow);
         }
 
         button.btn-danger {
@@ -262,12 +701,10 @@
         /* Video Player Wrapper */
         .video-box-wrapper {
             position: relative;
-            width: 320px;
-            /* Strict fixed width */
-            height: 240px;
-            /* Strict fixed height */
+            width: 100%;
+            max-width: 320px;
+            height: 155px;
             margin: 0 auto;
-            /* Center alignment inside panel */
             background-color: #000;
             border-radius: 8px;
             overflow: hidden;
@@ -276,6 +713,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            flex-shrink: 0;
         }
 
         video {
@@ -314,10 +752,17 @@
         }
 
         .storyboard-scroll-container {
-            display: flex;
-            gap: 15px;
+            display: grid;
+            grid-template-rows: repeat(var(--storyboard-rows, 1), 145px);
+            grid-template-columns: repeat(var(--storyboard-cols, 10), 190px);
+            grid-auto-flow: row;
+            gap: 10px;
             overflow-x: auto;
-            padding-bottom: 10px;
+            overflow-y: hidden;
+            padding-bottom: 6px;
+            align-content: start;
+            flex: 1;
+            min-height: 0;
             scroll-behavior: smooth;
         }
 
@@ -342,17 +787,25 @@
 
         /* State card style in storyboard list */
         .state-storyboard-card {
-            flex: 0 0 280px;
+            width: 190px;
+            min-width: 190px;
+            max-width: 190px;
+            height: 145px;
+            min-height: 145px;
+            max-height: 145px;
+            box-sizing: border-box;
             background-color: var(--panel-accent);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 12px;
+            padding: 8px 10px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 5px;
             position: relative;
-            transition: all 0.2s;
+            transition: border-color 0.15s, box-shadow 0.15s;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            flex-shrink: 0;
         }
 
         .state-storyboard-card.active-card {
@@ -365,13 +818,16 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border-color);
-            padding-bottom: 6px;
+            padding-bottom: 4px;
         }
 
         .state-card-title {
             font-weight: 700;
-            font-size: 0.95em;
+            font-size: 0.9em;
             color: var(--accent-color);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .state-card-delete {
@@ -391,12 +847,13 @@
         .state-frames-preview {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
+            gap: 4px;
             background-color: var(--bg-color);
-            border-radius: 6px;
-            padding: 6px;
-            min-height: 54px;
+            border-radius: 4px;
+            padding: 4px;
+            height: 48px;
             align-items: center;
+            box-sizing: border-box;
         }
 
         .frame-preview-thumb {
@@ -409,12 +866,13 @@
         }
 
         .state-card-details {
-            font-size: 0.8em;
+            font-size: 0.76em;
             display: grid;
             grid-template-columns: auto 1fr;
-            row-gap: 4px;
-            column-gap: 10px;
+            row-gap: 2px;
+            column-gap: 6px;
             color: var(--text-muted);
+            line-height: 1.2;
         }
 
         .state-card-details span.label {
@@ -428,7 +886,13 @@
 
         /* Add State Frame Card Placeholder */
         .add-state-card-placeholder {
-            flex: 0 0 200px;
+            width: 190px;
+            min-width: 190px;
+            max-width: 190px;
+            height: 145px;
+            min-height: 145px;
+            max-height: 145px;
+            box-sizing: border-box;
             border: 2px dashed var(--border-color);
             border-radius: 8px;
             display: flex;
@@ -439,7 +903,8 @@
             color: var(--text-muted);
             transition: all 0.2s;
             background-color: transparent;
-            gap: 10px;
+            gap: 6px;
+            flex-shrink: 0;
         }
 
         .add-state-card-placeholder:hover {
@@ -449,8 +914,8 @@
         }
 
         .add-state-card-placeholder svg {
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             stroke: currentColor;
         }
 
@@ -865,29 +1330,28 @@
             <div class="logo-icon">🎞️</div>
             <div>
                 <h1>동영상 상태 별 스프라이트 생성기</h1>
-                <div style="font-size: 0.75em; color: var(--text-muted);">AI Prompt Generated Movie Slicer & Sprite
-                    Sheet Exporter</div>
+                <div style="font-size: 0.7em; color: var(--text-muted);">AI Prompt Generated Movie Slicer & Sprite Sheet Exporter</div>
             </div>
         </div>
         <div class="header-actions">
-            <button class="btn-outline" onclick="openPromptManagerModal()">⚙️ 프롬프트 매니저</button>
+            <button class="btn-outline btn-icon" onclick="openPromptManagerModal()" title="⚙️ AI 프롬프트 매니저 모달 열기">⚙️ 매니저</button>
             <input type="file" id="projectFileInput" accept=".json" style="display: none;">
-            <button class="btn-outline" onclick="document.getElementById('projectFileInput').click()">📂 프로젝트/설정
-                로드</button>
-            <button onclick="saveProjectJSON()">💾 프로젝트 저장</button>
+            <button class="btn-outline btn-icon" onclick="document.getElementById('projectFileInput').click()" title="📂 프로젝트/설정 파일 불러오기 (.json)">📂 로드</button>
+            <button class="btn-success btn-icon" onclick="saveProjectJSON()" title="💾 프로젝트 설정 파일 저장 (.json)">💾 저장</button>
         </div>
     </header>
 
     <!-- Main Workspace -->
-    <div class="main-container">
+    <div class="main-container" id="slicerContainer">
 
         <!-- Left Side: Source Video & Settings -->
-        <div class="left-panel">
-            <h2>🎥 비디오 소스 로드</h2>
-            <div class="form-group">
+        <div class="left-panel" id="slicerLeftPanel">
+            <!-- Video Fixed Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                <h2 style="margin: 0; font-size: 0.95em;">🎥 소스 비디오</h2>
                 <input type="file" id="videoFileInput" accept="video/*" style="display: none;">
-                <button onclick="document.getElementById('videoFileInput').click()" style="width:100%;">
-                    📂 동영상 파일 불러오기
+                <button onclick="document.getElementById('videoFileInput').click()" class="btn-outline btn-icon" title="📂 동영상 파일 불러오기 (MP4, WebM 등)">
+                    📂 파일 열기
                 </button>
             </div>
 
@@ -895,7 +1359,7 @@
             <div class="video-box-wrapper" style="position: relative; overflow: hidden;">
                 <div class="video-overlay-msg" id="videoPromptMsg">
                     <span>선택된 비디오 없음</span>
-                    <span style="font-size: 0.8em;">(MP4 등 동영상 파일을 불러오세요)</span>
+                    <span style="font-size: 0.75em;">(동영상 파일을 불러오세요)</span>
                 </div>
                 <video id="previewVideo" playsinline style="display: none;"></video>
                 <canvas id="previewCanvas" style="width: 100%; height: 100%; object-fit: contain; z-index: 1;"></canvas>
@@ -906,175 +1370,173 @@
             </div>
 
             <!-- Video Player Controls -->
-            <div
-                style="display: flex; gap: 8px; margin-top: -10px; align-items: center; background-color: var(--panel-accent); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); z-index: 3;">
-                <button onclick="playActiveState(false)" class="btn-outline"
-                    style="padding: 6px 12px; font-size: 0.85em; flex: 1;">▶ 재생</button>
-                <button onclick="playActiveState(true)" class="btn-outline"
-                    style="padding: 6px 12px; font-size: 0.85em; flex: 1.2;">🔄 반복재생</button>
-                <button onclick="pauseVideo()" class="btn-outline"
-                    style="padding: 6px 12px; font-size: 0.85em; border-color: var(--end-color); color: var(--end-color); flex: 0.8;">⏸
-                    정지</button>
-                <button onclick="stopVideo()" class="btn-outline"
-                    style="padding: 6px 12px; font-size: 0.85em; flex: 0.8;">⏹ 초기화</button>
+            <div class="left-player-controls">
+                <button onclick="playActiveState(false)" class="btn-outline btn-icon" title="▶ 재생 (현재 선택된 상태 구간)">▶</button>
+                <button onclick="playActiveState(true)" class="btn-outline btn-icon" title="🔄 반복 재생 (현재 상태 루프)">🔄</button>
+                <button onclick="pauseVideo()" class="btn-outline btn-icon" style="border-color: var(--end-color); color: var(--end-color);" title="⏸ 일시 정지">⏸</button>
+                <button onclick="stopVideo()" class="btn-outline btn-icon" title="⏹ 처음 프레임으로 리셋">⏹</button>
             </div>
 
-            <hr style="border-color: var(--border-color); margin: 5px 0;">
-
-            <h2>🎨 Chroma Key 필터 설정</h2>
-            <div class="form-group">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="checkbox" id="chromaKeyEnabled" style="width:18px; height:18px; cursor:pointer;">
-                        <label for="chromaKeyEnabled"
-                            style="font-size: 0.95em; cursor:pointer; color:var(--text-color);">크로마키 활성화</label>
-                    </div>
-                    <button type="button" id="pipetteBtn" class="btn-outline"
-                        style="padding: 4px 10px; font-size: 0.8em; margin-bottom: 0; cursor: pointer;">🧪 스포이트</button>
+            <!-- Left Panel Sub-Tabs -->
+            <div class="side-panel-tabs-header">
+                <div class="side-tab-btn active" data-sidetab="chroma" onclick="switchLeftPanelTab('chroma')" title="🎨 크로마키 배경색 투명화 필터">
+                    🎨 크로마키
+                </div>
+                <div class="side-tab-btn" data-sidetab="crop" onclick="switchLeftPanelTab('crop')" title="✂️ 1:1 스프라이트 크롭 영역 설정">
+                    ✂️ 크롭
                 </div>
             </div>
 
-            <div class="flex-row">
+            <!-- Tab 1: Chroma Key Filter -->
+            <div class="side-tab-content active" id="leftTabChroma">
                 <div class="form-group">
-                    <label>색상 선택</label>
-                    <input type="color" id="chromaColor" value="#00ff00"
-                        style="padding: 0; height: 38px; cursor: pointer;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="chromaKeyEnabled" style="width:16px; height:16px; cursor:pointer;">
+                            <label for="chromaKeyEnabled" style="font-size: 0.9em; cursor:pointer; color:var(--text-color); margin:0;">크로마키 활성화</label>
+                        </div>
+                        <button type="button" id="pipetteBtn" class="btn-outline btn-icon" style="padding: 2px 6px; font-size: 0.76em; margin-bottom: 0; cursor: pointer;" title="🧪 영상 캔버스를 클릭하여 크로마키 배경색 추출">🧪 스포이트</button>
+                    </div>
                 </div>
+
+                <div class="flex-row">
+                    <div class="form-group">
+                        <label>색상 선택</label>
+                        <input type="color" id="chromaColor" value="#00ff00" style="padding: 0; height: 34px; cursor: pointer;">
+                    </div>
+                    <div class="form-group">
+                        <label>비디오 FPS</label>
+                        <input type="number" id="videoFPS" value="30" min="1" max="120" style="padding: 6px 10px;">
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label>비디오 FPS</label>
-                    <input type="number" id="videoFPS" value="30" min="1" max="120">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label>허용 오차 (Tolerance)</label>
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <input type="number" id="chromaToleranceNumber" min="1" max="200" value="40"
+                                style="width: 50px; padding: 3px 4px; font-size: 0.8em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
+                            <select id="chromaToleranceCombo"
+                                style="width: 72px; padding: 3px 4px; font-size: 0.8em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
+                                <option value="">기타</option>
+                                <option value="10">10 (엄격)</option>
+                                <option value="20">20</option>
+                                <option value="30">30</option>
+                                <option value="40">40 (기본)</option>
+                                <option value="50">50</option>
+                                <option value="70">70</option>
+                                <option value="100">100 (느슨)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input type="range" id="chromaTolerance" min="1" max="200" value="40" style="width: 100%; cursor: pointer;">
+                </div>
+
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label>부드러운 에지 (Soft Edge)</label>
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <input type="number" id="chromaSoftEdgeNumber" min="0" max="20" step="0.1" value="1.5"
+                                style="width: 50px; padding: 3px 4px; font-size: 0.8em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
+                            <select id="chromaSoftEdgeCombo"
+                                style="width: 72px; padding: 3px 4px; font-size: 0.8em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
+                                <option value="">기타</option>
+                                <option value="0">0.0 (하드)</option>
+                                <option value="0.5">0.5</option>
+                                <option value="1.0">1.0</option>
+                                <option value="1.5">1.5 (기본)</option>
+                                <option value="2.0">2.0</option>
+                                <option value="3.0">3.0</option>
+                                <option value="5.0">5.0 (소프트)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input type="range" id="chromaSoftEdge" min="0" max="20" step="0.1" value="1.5" style="width: 100%; cursor: pointer;">
                 </div>
             </div>
 
-            <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label>허용 오차(Tolerance)</label>
-                    <div style="display: flex; gap: 4px; align-items: center;">
-                        <input type="number" id="chromaToleranceNumber" min="1" max="200" value="40"
-                            style="width: 55px; padding: 4px 6px; font-size: 0.85em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
-                        <select id="chromaToleranceCombo"
-                            style="width: 75px; padding: 4px 6px; font-size: 0.85em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
-                            <option value="">기타</option>
-                            <option value="10">10 (엄격)</option>
-                            <option value="20">20</option>
-                            <option value="30">30</option>
-                            <option value="40">40 (기본)</option>
-                            <option value="50">50</option>
-                            <option value="70">70</option>
-                            <option value="100">100 (느슨)</option>
-                        </select>
+            <!-- Tab 2: Crop Settings -->
+            <div class="side-tab-content" id="leftTabCrop">
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label>크롭 크기 (%)</label>
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <input type="number" id="cropSizeNumber" min="10" max="100" value="100"
+                                style="width: 50px; padding: 3px 4px; font-size: 0.8em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
+                            <select id="cropSizeCombo"
+                                style="width: 72px; padding: 3px 4px; font-size: 0.8em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
+                                <option value="">기타</option>
+                                <option value="100">100%</option>
+                                <option value="90">90%</option>
+                                <option value="75">75%</option>
+                                <option value="50">50%</option>
+                                <option value="30">30%</option>
+                                <option value="10">10%</option>
+                            </select>
+                        </div>
                     </div>
+                    <input type="range" id="cropSizeRange" min="10" max="100" value="100" style="width: 100%; cursor: pointer;">
                 </div>
-                <input type="range" id="chromaTolerance" min="1" max="200" value="40"
-                    style="width: 100%; cursor: pointer;">
-            </div>
 
-            <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label>부드러운 에지(Soft Edge)</label>
-                    <div style="display: flex; gap: 4px; align-items: center;">
-                        <input type="number" id="chromaSoftEdgeNumber" min="0" max="20" step="0.1" value="1.5"
-                            style="width: 55px; padding: 4px 6px; font-size: 0.85em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
-                        <select id="chromaSoftEdgeCombo"
-                            style="width: 75px; padding: 4px 6px; font-size: 0.85em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
-                            <option value="">기타</option>
-                            <option value="0">0.0 (하드)</option>
-                            <option value="0.5">0.5</option>
-                            <option value="1.0">1.0</option>
-                            <option value="1.5">1.5 (기본)</option>
-                            <option value="2.0">2.0</option>
-                            <option value="3.0">3.0</option>
-                            <option value="5.0">5.0 (소프트)</option>
-                        </select>
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label>가로 위치 (X) (%)</label>
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <input type="number" id="cropXNumber" min="0" max="100" value="50"
+                                style="width: 50px; padding: 3px 4px; font-size: 0.8em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
+                            <select id="cropXCombo"
+                                style="width: 72px; padding: 3px 4px; font-size: 0.8em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
+                                <option value="">기타</option>
+                                <option value="0">0% (좌)</option>
+                                <option value="25">25%</option>
+                                <option value="50">50% (중)</option>
+                                <option value="75">75%</option>
+                                <option value="100">100% (우)</option>
+                            </select>
+                        </div>
                     </div>
+                    <input type="range" id="cropXRange" min="0" max="100" value="50" style="width: 100%; cursor: pointer;">
                 </div>
-                <input type="range" id="chromaSoftEdge" min="0" max="20" step="0.1" value="1.5"
-                    style="width: 100%; cursor: pointer;">
-            </div>
 
-            <hr style="border-color: var(--border-color); margin: 5px 0;">
-
-            <h2>✂️ 크롭 영역 설정 <span style="font-size: 0.75em; font-weight: normal; color: var(--text-muted);">(드래그&휠 조절
-                    가능)</span></h2>
-            <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label>크롭 크기 (%)</label>
-                    <div style="display: flex; gap: 4px; align-items: center;">
-                        <input type="number" id="cropSizeNumber" min="10" max="100" value="100"
-                            style="width: 55px; padding: 4px 6px; font-size: 0.85em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
-                        <select id="cropSizeCombo"
-                            style="width: 75px; padding: 4px 6px; font-size: 0.85em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
-                            <option value="">기타</option>
-                            <option value="100">100%</option>
-                            <option value="90">90%</option>
-                            <option value="75">75%</option>
-                            <option value="50">50%</option>
-                            <option value="30">30%</option>
-                            <option value="10">10%</option>
-                        </select>
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label>세로 위치 (Y) (%)</label>
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <input type="number" id="cropYNumber" min="0" max="100" value="50"
+                                style="width: 50px; padding: 3px 4px; font-size: 0.8em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
+                            <select id="cropYCombo"
+                                style="width: 72px; padding: 3px 4px; font-size: 0.8em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
+                                <option value="">기타</option>
+                                <option value="0">0% (상)</option>
+                                <option value="25">25%</option>
+                                <option value="50">50% (중)</option>
+                                <option value="75">75%</option>
+                                <option value="100">100% (하)</option>
+                            </select>
+                        </div>
                     </div>
+                    <input type="range" id="cropYRange" min="0" max="100" value="50" style="width: 100%; cursor: pointer;">
                 </div>
-                <input type="range" id="cropSizeRange" min="10" max="100" value="100"
-                    style="width: 100%; cursor: pointer;">
-            </div>
-
-            <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label>가로 위치 (X) (%)</label>
-                    <div style="display: flex; gap: 4px; align-items: center;">
-                        <input type="number" id="cropXNumber" min="0" max="100" value="50"
-                            style="width: 55px; padding: 4px 6px; font-size: 0.85em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
-                        <select id="cropXCombo"
-                            style="width: 75px; padding: 4px 6px; font-size: 0.85em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
-                            <option value="">기타</option>
-                            <option value="0">0% (좌)</option>
-                            <option value="25">25%</option>
-                            <option value="50">50% (중)</option>
-                            <option value="75">75%</option>
-                            <option value="100">100% (우)</option>
-                        </select>
-                    </div>
-                </div>
-                <input type="range" id="cropXRange" min="0" max="100" value="50" style="width: 100%; cursor: pointer;">
-            </div>
-
-            <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label>세로 위치 (Y) (%)</label>
-                    <div style="display: flex; gap: 4px; align-items: center;">
-                        <input type="number" id="cropYNumber" min="0" max="100" value="50"
-                            style="width: 55px; padding: 4px 6px; font-size: 0.85em; text-align: right; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px;">
-                        <select id="cropYCombo"
-                            style="width: 75px; padding: 4px 6px; font-size: 0.85em; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;">
-                            <option value="">기타</option>
-                            <option value="0">0% (상)</option>
-                            <option value="25">25%</option>
-                            <option value="50">50% (중)</option>
-                            <option value="75">75%</option>
-                            <option value="100">100% (하)</option>
-                        </select>
-                    </div>
-                </div>
-                <input type="range" id="cropYRange" min="0" max="100" value="50" style="width: 100%; cursor: pointer;">
             </div>
         </div>
 
-        <!-- Center: Horizontal Storyboard & Timeline Editor -->
-        <div class="center-panel">
+        <!-- Resizer between Left and Center panels -->
+        <div class="panel-resizer" id="slicerResizerLeft" title="좌우 드래그하여 패널 너비 조절 (더블클릭 시 기본 크기 복원)"></div>
 
-            <!-- Horizontal Storyboard Viewer -->
-            <div class="storyboard-section">
+        <!-- Center: 3-Split (Storyboard Grid, Multi-Inspector Tabs, Bottom Timeline) -->
+        <div class="center-panel" id="slicerCenterPanel">
+
+            <!-- 1. Multi-row Storyboard Viewer -->
+            <div class="storyboard-section" id="centerStoryboardSection">
                 <div class="storyboard-title-row">
-                    <h2>📋 상태별 스토리보드 목록 <span
-                            style="font-size: 0.75em; font-weight: normal; color: var(--text-muted);">(스크롤 가능)</span>
-                    </h2>
-                    <div style="display: flex; gap: 8px;">
-                        <button id="swapModeBtn" class="btn-outline"
-                            style="padding: 6px 12px; font-size: 0.85em; border-color: var(--accent-color); color: var(--accent-color);"
-                            onclick="toggleSwapMode()">🔄 상태 이름 교환</button>
+                    <h2 style="margin: 0; font-size: 0.95em;">📋 상태별 스토리보드 목록</h2>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button id="swapModeBtn" class="btn-outline btn-icon"
+                            style="border-color: var(--accent-color); color: var(--accent-color);"
+                            onclick="toggleSwapMode()" title="🔄 상태 순서 및 이름 교환 모드 전환">🔄 교환</button>
                         <input type="file" id="promptConfigFileInput" accept=".json" style="display: none;">
-                        <button class="btn-success" style="padding: 6px 12px; font-size: 0.85em;"
-                            onclick="document.getElementById('promptConfigFileInput').click()">⚙️ 프롬프트 상태 로드</button>
+                        <button class="btn-success btn-icon"
+                            onclick="document.getElementById('promptConfigFileInput').click()" title="📥 외부 프롬프트 상태 JSON 로드">📥 로드</button>
                     </div>
                 </div>
                 <div class="storyboard-scroll-container" id="storyboardContainer">
@@ -1090,41 +1552,171 @@
                 </div>
             </div>
 
-            <!-- Visual Timeline Slider -->
-            <div class="timeline-section">
+            <!-- Resizer between Storyboard and Multi-Inspector -->
+            <div class="panel-row-resizer" id="centerResizer1" title="상하 드래그하여 높이 조절 (더블클릭 시 기본 높이 복원)"></div>
+
+            <!-- 2. Middle Multi-Inspector Section -->
+            <div class="center-inspector-section" id="centerInspectorSection">
+                <div class="inspector-tabs-header">
+                    <div class="inspector-tab-btn active" data-tab="preview" onclick="switchInspectorTab('preview')" title="🎬 실시간 애니메이션 미리보기 및 프레임 스트립">
+                        🎬 미리보기
+                    </div>
+                    <div class="inspector-tab-btn" data-tab="prompt" onclick="switchInspectorTab('prompt')" title="🤖 상태별 AI 프롬프트 및 모션 속성 편집">
+                        🤖 프롬프트
+                    </div>
+                    <div class="inspector-tab-btn" data-tab="audio" onclick="switchInspectorTab('audio')" title="🔊 사운드 구간 정보 및 유니티 클립 내보내기">
+                        🔊 사운드
+                    </div>
+                </div>
+
+                <!-- Tab 1: Preview & Filmstrip -->
+                <div class="inspector-tab-content active" id="inspectorTabPreview">
+                    <!-- Left: Loop Preview Player -->
+                    <div class="inspector-preview-col">
+                        <div class="center-preview-canvas-wrapper checkerboard-bg" id="centerPreviewCanvasWrapper" style="width: 105px; height: 105px;">
+                            <canvas id="centerPreviewCanvas" width="256" height="256"></canvas>
+                            <div id="centerPreviewNoFrames"
+                                style="display:none; position: absolute; color: var(--text-muted); font-size: 0.75em; text-align: center; padding: 6px;">
+                                비디오 로드 후 재생됩니다.
+                            </div>
+                        </div>
+                        <div class="inspector-preview-player-bar">
+                            <button id="centerPrevPlayBtn" class="btn-outline btn-icon" onclick="toggleCenterPreviewPlayback()"
+                                title="일시정지 / 재생 토글">⏸️ 정지</button>
+                            <button class="btn-outline btn-icon" onclick="stepCenterPreviewFrame(-1)"
+                                title="이전 프레임으로 1프레임 이동">⏮️</button>
+                            <button class="btn-outline btn-icon" onclick="stepCenterPreviewFrame(1)"
+                                title="다음 프레임으로 1프레임 이동">⏭️</button>
+                            <select id="centerPreviewFpsSelect" onchange="changeCenterPreviewFps(this.value)"
+                                style="width: auto; height: 24px; padding: 2px 4px; font-size: 0.78em; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; cursor: pointer;"
+                                title="미리보기 재생 속도 (FPS)">
+                                <option value="10">10 FPS</option>
+                                <option value="15">15 FPS</option>
+                                <option value="24">24 FPS</option>
+                                <option value="30" selected>30 FPS</option>
+                                <option value="60">60 FPS</option>
+                            </select>
+                            <button id="centerCheckerboardBtn" class="btn-outline btn-icon" onclick="toggleCenterCheckerboard()"
+                                title="체커보드 투명 배경 토글">🏁</button>
+                        </div>
+                        <div style="font-size: 0.72em; color: var(--text-muted); display: flex; gap: 6px; justify-content: center; font-family: monospace;">
+                            <span id="centerPreviewFrameCounter">프레임: 0 / 0</span>
+                            <span id="centerPreviewTimeCounter">0.00s</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Frame Sequence Filmstrip -->
+                    <div class="inspector-filmstrip-col">
+                        <div class="filmstrip-header">
+                            <span style="font-size: 0.85em; font-weight: bold; color: var(--text-color);">
+                                🎞️ 구간 프레임 필름스트립 (<span id="filmstripStateLabel" style="color: var(--accent-color);">-</span>)
+                            </span>
+                            <span style="font-size: 0.78em; color: var(--text-muted);">
+                                프레임 클릭 시 타임라인 즉시 이동
+                            </span>
+                        </div>
+                        <div class="filmstrip-track" id="centerFrameFilmstrip">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: State AI Prompt & Metadata Inspector -->
+                <div class="inspector-tab-content" id="inspectorTabPrompt">
+                    <div class="inspector-form-grid">
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <label style="font-size: 0.85em;">상태 식별 이름 (State Name)</label>
+                            <input type="text" id="inspectorStateName" style="padding: 6px 10px; font-size: 0.85em;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <label style="font-size: 0.85em;">동작/액션 설명 (Action Motion)</label>
+                            <input type="text" id="inspectorStateAction" style="padding: 6px 10px; font-size: 0.85em;">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 8px;">
+                            <label style="font-size: 0.85em;">상태 전용 프롬프트 (State Motion Prompt)</label>
+                            <textarea id="inspectorStatePrompt" rows="2" style="min-height: 48px; padding: 6px 10px; font-size: 0.85em;"></textarea>
+                        </div>
+                        <div style="grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <label style="font-size: 0.8em; display: flex; align-items: center; gap: 4px; cursor: pointer; margin-bottom: 0;" title="구간 재생 시 무한 루프 반복">
+                                    <input type="checkbox" id="inspectorStateLoop" style="width: 14px; height: 14px; cursor: pointer;"> Loop (반복)
+                                </label>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <label style="font-size: 0.78em; margin-bottom: 0; color: var(--text-muted);">등급:</label>
+                                    <select id="inspectorStateStatus" style="width: auto; height: 24px; padding: 2px 6px; font-size: 0.8em; margin-bottom: 0;">
+                                        <option value="stable">stable (안정)</option>
+                                        <option value="draft">draft (작업중)</option>
+                                        <option value="ready">ready (준비됨)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button onclick="saveInspectorStatePrompt()" class="btn-success btn-icon" title="💾 현재 상태 프롬프트 및 속성 저장">
+                                💾 저장
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Sound & Motion Export Info -->
+                <div class="inspector-tab-content" id="inspectorTabAudio">
+                    <div style="display: flex; flex-direction: column; gap: 8px; padding: 4px; width: 100%;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel-accent); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div>
+                                <div style="font-weight: bold; font-size: 0.88em; color: var(--text-color);">🎵 비디오 오디오 정보 및 추출</div>
+                                <div style="font-size: 0.76em; color: var(--text-muted); margin-top: 2px;" id="inspectorAudioRangeInfo">현재 선택된 구간의 오디오 정보가 표시됩니다.</div>
+                            </div>
+                            <button onclick="extractAudioForActiveState()" class="btn-outline btn-icon" style="border-color: var(--accent-color); color: var(--accent-color);" title="현재 구간의 오디오를 WAV 파일로 추출">
+                                🔊 WAV 추출
+                            </button>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel-accent); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div>
+                                <div style="font-weight: bold; font-size: 0.88em; color: var(--text-color);">🎮 Unity .anim 모션 클립 동기화</div>
+                                <div style="font-size: 0.76em; color: var(--text-muted); margin-top: 2px;">Unity 스프라이트 애니메이터에 연결 가능한 키프레임 클립 설정</div>
+                            </div>
+                            <button onclick="exportSingleUnityAnimPrompt()" class="btn-outline btn-icon" style="border-color: var(--info-color); color: var(--info-color);" title="클립 JSON 정보를 클립보드에 복사">
+                                📋 클립 복사
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resizer between Multi-Inspector and Timeline -->
+            <div class="panel-row-resizer" id="centerResizer2" title="상하 드래그하여 높이 조절 (더블클릭 시 기본 높이 복원)"></div>
+
+            <!-- 3. Visual Timeline Slider (Bottom Docked) -->
+            <div class="timeline-section" id="centerTimelineSection">
                 <div class="timeline-control-panel">
                     <div class="timeline-state-editor"
-                        style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                        <label style="font-size: 1.1em; color: var(--text-color); white-space: nowrap;">편집 중인
-                            상태:</label>
-                        <select id="activeStateSelect" style="width: 180px; margin-bottom: 0;">
+                        style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <label style="font-size: 0.88em; color: var(--text-color); white-space: nowrap;">상태:</label>
+                        <select id="activeStateSelect" style="width: 140px; height: 24px; padding: 2px 4px; font-size: 0.8em; margin-bottom: 0;">
                             <!-- State Options populated dynamically -->
                         </select>
 
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <label
-                                style="font-size: 0.9em; color: var(--start-color); font-weight: bold; white-space: nowrap;">시작
-                                프레임:</label>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <label style="font-size: 0.8em; color: var(--start-color); font-weight: bold; white-space: nowrap;">시작:</label>
                             <input type="number" id="stateStartFrameInput"
-                                style="width: 80px; margin-bottom: 0; padding: 6px 10px;" min="0">
+                                style="width: 60px; height: 24px; margin-bottom: 0; padding: 2px 4px; font-size: 0.8em;" min="0">
                         </div>
 
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <label
-                                style="font-size: 0.9em; color: var(--end-color); font-weight: bold; white-space: nowrap;">끝
-                                프레임:</label>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <label style="font-size: 0.8em; color: var(--end-color); font-weight: bold; white-space: nowrap;">끝:</label>
                             <input type="number" id="stateEndFrameInput"
-                                style="width: 80px; margin-bottom: 0; padding: 6px 10px;" min="0">
+                                style="width: 60px; height: 24px; margin-bottom: 0; padding: 2px 4px; font-size: 0.8em;" min="0">
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn-outline" onclick="setMarkerToCurrent('start')"
-                            style="border-color: var(--start-color); color: var(--start-color);">
-                            🔷 시작점으로 설정
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn-outline btn-icon" onclick="setMarkerToCurrent('start')"
+                            style="border-color: var(--start-color); color: var(--start-color);"
+                            title="현재 재생 위치를 구간 시작점으로 지정 (🔷 시작점)">
+                            🔷 시작
                         </button>
-                        <button class="btn-outline" onclick="setMarkerToCurrent('end')"
-                            style="border-color: var(--end-color); color: var(--end-color);">
-                            🔶 끝점으로 설정
+                        <button class="btn-outline btn-icon" onclick="setMarkerToCurrent('end')"
+                            style="border-color: var(--end-color); color: var(--end-color);"
+                            title="현재 재생 위치를 구간 끝점으로 지정 (🔶 끝점)">
+                            🔶 끝
                         </button>
                     </div>
                 </div>
@@ -1166,52 +1758,81 @@
 
         </div>
 
+        <!-- Resizer between Center and Right panels -->
+        <div class="panel-resizer" id="slicerResizerRight" title="좌우 드래그하여 패널 너비 조절 (더블클릭 시 기본 크기 복원)"></div>
+
         <!-- Right Side: Exporter & Output Preview -->
-        <div class="right-panel">
-            <h2>🎯 프로젝트 설정</h2>
-            <div class="form-group">
-                <label>캐릭터 ID</label>
-                <input type="text" id="characterIdInput" value="dajung_NeoMaid_2d">
-            </div>
-
-            <hr style="border-color: var(--border-color); margin: 5px 0;">
-
-            <h2>📐 스프라이트 시트 내보내기</h2>
-            <div class="form-group">
-                <label>열(Columns) 개수</label>
-                <input type="number" id="spriteCols" value="8" min="1" max="100">
-            </div>
-            <div class="flex-row">
-                <div class="form-group">
-                    <label>프레임 너비(Width)</label>
-                    <input type="number" id="frameWidth" value="128" min="8" max="2048">
+        <div class="right-panel" id="slicerRightPanel">
+            <!-- Right Panel Sub-Tabs -->
+            <div class="side-panel-tabs-header">
+                <div class="side-tab-btn active" data-sidetab="sprite" onclick="switchRightPanelTab('sprite')" title="📐 스프라이트 시트 생성 및 미리보기">
+                    📐 스프라이트
                 </div>
-                <div class="form-group">
-                    <label>프레임 높이(Height)</label>
-                    <input type="number" id="frameHeight" value="128" min="8" max="2048">
+                <div class="side-tab-btn" data-sidetab="export" onclick="switchRightPanelTab('export')" title="📦 전체 리소스 ZIP 및 유니티 클립 내보내기">
+                    📦 내보내기
+                </div>
+                <div class="side-tab-btn" data-sidetab="json" onclick="switchRightPanelTab('json')" title="📄 실시간 프로젝트 설정 JSON 확인 및 저장">
+                    📄 JSON
                 </div>
             </div>
 
-            <div class="spritesheet-preview-box">
-                <canvas id="spritesheetCanvas" width="256" height="256"></canvas>
+            <!-- Tab 1: Sprite Sheet Generation & Preview -->
+            <div class="side-tab-content active" id="rightTabSprite">
+                <div class="flex-row">
+                    <div class="form-group">
+                        <label>열(Cols)</label>
+                        <input type="number" id="spriteCols" value="8" min="1" max="100" style="padding: 3px 6px;">
+                    </div>
+                    <div class="form-group">
+                        <label>프레임 W x H</label>
+                        <div style="display: flex; gap: 4px;">
+                            <input type="number" id="frameWidth" value="128" min="8" max="2048" style="padding: 3px 4px;" title="Width">
+                            <input type="number" id="frameHeight" value="128" min="8" max="2048" style="padding: 3px 4px;" title="Height">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="spritesheet-preview-box" style="height: 140px; margin: 3px 0;">
+                    <canvas id="spritesheetCanvas" width="256" height="256"></canvas>
+                </div>
+
+                <div style="display: flex; gap: 6px;">
+                    <button onclick="generateSpriteSheet()" class="btn-outline btn-icon" style="flex: 1;" title="⚡ 스프라이트 시트 캔버스 미리보기 생성">⚡ 미리보기</button>
+                    <button onclick="downloadSpriteSheet()" class="btn-success btn-icon" style="flex: 1.2;" title="💾 스프라이트 시트 이미지 파일 다운로드 (.png)">💾 PNG</button>
+                </div>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                <button onclick="generateSpriteSheet()" class="btn-outline">⚡ 스프라이트 시트 미리보기 생성</button>
-                <button onclick="downloadSpriteSheet()" class="btn-success">💾 스프라이트 시트 다운로드 (.png)</button>
+            <!-- Tab 2: Package ZIP, Unity & Audio Export -->
+            <div class="side-tab-content" id="rightTabExport">
+                <div class="form-group">
+                    <label>캐릭터 ID</label>
+                    <input type="text" id="characterIdInput" value="dajung_NeoMaid_2d" style="padding: 3px 6px;">
+                </div>
+
+                <button onclick="downloadAllResourcesZip()" class="btn-success btn-icon"
+                    style="background-color: var(--info-color); border: none; font-weight:bold; width: 100%;"
+                    title="📦 모든 스프라이트, 애니메이션, 사운드, JSON 설정을 하나의 ZIP으로 압축 다운로드">
+                    📦 전체 ZIP 다운로드
+                </button>
+
+                <hr style="border-color: var(--border-color); margin: 4px 0;">
+
+                <button onclick="extractActiveStateAudio()" class="btn-outline btn-icon"
+                    style="border-color: var(--info-color); color: var(--info-color); width: 100%;"
+                    title="🔊 선택된 상태의 음성 트랙을 WAV 오디오 파일로 추출">
+                    🔊 WAV 음성 추출
+                </button>
             </div>
 
-            <hr style="border-color: var(--border-color); margin: 5px 0;">
-
-            <h2>🎵 오디오 효과음 내보내기</h2>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button onclick="extractActiveStateAudio()" class="btn-outline"
-                    style="border-color: var(--info-color); color: var(--info-color);">🔊 선택된 상태 음성 추출 (.wav)</button>
+            <!-- Tab 3: Config JSON Live Preview -->
+            <div class="side-tab-content" id="rightTabJson">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="margin: 0; font-size: 0.78em; color: var(--text-muted);">실시간 JSON</label>
+                    <button onclick="copyJsonToClipboard()" class="btn-outline btn-icon" style="padding: 2px 6px; font-size: 0.76em;" title="📋 JSON 전체 복사">📋 복사</button>
+                </div>
+                <pre id="jsonPreview" style="flex: 1; min-height: 140px; max-height: 320px; overflow: auto; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px; font-size: 0.75em; margin: 0; font-family: monospace;">{}</pre>
+                <button onclick="saveProjectJSON()" class="btn-success btn-icon" style="width: 100%; font-size: 0.8em;" title="💾 현재 프로젝트 설정 JSON 파일 다운로드">💾 JSON 저장</button>
             </div>
-
-            <hr style="border-color: var(--border-color); margin: 5px 0;">
-            <h2>📄 Live JSON 데이터</h2>
-            <pre id="jsonPreview">{}</pre>
         </div>
 
     </div>
@@ -1288,6 +1909,19 @@
         const spritesheetCanvas = document.getElementById('spritesheetCanvas');
         const loadingScreen = document.getElementById('loadingScreen');
         const loadingText = document.getElementById('loadingText');
+
+        // --- State Frames Helper ---
+        function getStateFramesList(state) {
+            if (state.customFrames && state.customFrames.length > 0) {
+                return [...state.customFrames];
+            }
+            const frames = [];
+            const skip = parseInt(state.frameSkip) || 1;
+            for (let f = state.startFrame; f <= state.endFrame; f += skip) {
+                frames.push(f);
+            }
+            return frames;
+        }
 
         // Generic Helper for Slider + Number Input + Combo Box preset selector synchronization
         function setupTripleControl(baseName, configObject, configKey, scale, minVal, maxVal, isFloat, onInputCallback, onChangeCallback) {
@@ -1366,15 +2000,661 @@
             renderStates();
             updateJsonPreview();
             setupPlaybackLogic();
+            setupPanelResizers();
+            setupCenterPanelResizers();
+            startCenterPreviewLoop();
 
-            // Resize listener for 1:1 overlay
-            window.addEventListener('resize', updateVideoCropOverlay);
+            // Resize listener for 1:1 overlay and clamping
+            window.addEventListener('resize', () => {
+                updateVideoCropOverlay();
+                clampPanelSizes();
+            });
 
             // If opener exists, notify them that we are ready
             if (window.opener && !window.opener.closed) {
                 window.opener.postMessage({ type: 'videoSlicerReady' }, '*');
             }
         });
+
+        // --- Resizable 3-Panel Splitter Logic ---
+        function setupPanelResizers() {
+            const leftPanel = document.getElementById('slicerLeftPanel');
+            const resizerLeft = document.getElementById('slicerResizerLeft');
+            const centerPanel = document.getElementById('slicerCenterPanel');
+            const resizerRight = document.getElementById('slicerResizerRight');
+            const rightPanel = document.getElementById('slicerRightPanel');
+            const container = document.getElementById('slicerContainer');
+
+            if (!leftPanel || !resizerLeft || !centerPanel || !resizerRight || !rightPanel || !container) return;
+
+            // Restore saved panel sizes from localStorage
+            try {
+                const savedLeft = localStorage.getItem('movieToSprite_sample_leftPanelWidth') || localStorage.getItem('movieToSprite_leftPanelWidth');
+                const savedRight = localStorage.getItem('movieToSprite_sample_rightPanelWidth') || localStorage.getItem('movieToSprite_rightPanelWidth');
+                const containerWidth = container.clientWidth || window.innerWidth;
+                
+                if (savedLeft) {
+                    const lVal = parseFloat(savedLeft);
+                    if (!isNaN(lVal) && lVal >= 200 && lVal <= containerWidth - 550) {
+                        leftPanel.style.width = lVal + 'px';
+                        leftPanel.style.flex = `0 0 ${lVal}px`;
+                    }
+                }
+                if (savedRight) {
+                    const rVal = parseFloat(savedRight);
+                    if (!isNaN(rVal) && rVal >= 200 && rVal <= containerWidth - 550) {
+                        rightPanel.style.width = rVal + 'px';
+                        rightPanel.style.flex = `0 0 ${rVal}px`;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not restore saved panel widths:', e);
+            }
+
+            // Double click resets to default layout
+            function resetDefaultSizes() {
+                leftPanel.style.width = '32%';
+                leftPanel.style.flex = '';
+                rightPanel.style.width = '25%';
+                rightPanel.style.flex = '';
+                try {
+                    localStorage.removeItem('movieToSprite_sample_leftPanelWidth');
+                    localStorage.removeItem('movieToSprite_sample_rightPanelWidth');
+                } catch (e) {}
+                if (typeof updateVideoCropOverlay === 'function') updateVideoCropOverlay();
+                if (typeof showToastNotification === 'function') {
+                    showToastNotification('패널 너비가 기본 비율로 복원되었습니다.');
+                }
+            }
+
+            resizerLeft.addEventListener('dblclick', resetDefaultSizes);
+            resizerRight.addEventListener('dblclick', resetDefaultSizes);
+
+            // Dragging Left Resizer
+            resizerLeft.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                resizerLeft.setPointerCapture(e.pointerId);
+                resizerLeft.classList.add('is-resizing');
+                document.body.classList.add('resizing-col');
+
+                const startX = e.clientX;
+                const startLeftWidth = leftPanel.getBoundingClientRect().width;
+                const containerRect = container.getBoundingClientRect();
+                const rightWidth = rightPanel.getBoundingClientRect().width;
+                const minLeft = 240;
+                const minCenter = 280;
+                const maxLeft = Math.max(minLeft, containerRect.width - rightWidth - minCenter - 16);
+
+                function onPointerMove(moveEvent) {
+                    const dx = moveEvent.clientX - startX;
+                    const newWidth = Math.round(Math.max(minLeft, Math.min(maxLeft, startLeftWidth + dx)));
+                    leftPanel.style.width = newWidth + 'px';
+                    leftPanel.style.flex = `0 0 ${newWidth}px`;
+                    if (typeof updateVideoCropOverlay === 'function') updateVideoCropOverlay();
+                }
+
+                function onPointerUp(upEvent) {
+                    try {
+                        resizerLeft.releasePointerCapture(upEvent.pointerId);
+                    } catch (err) {}
+                    resizerLeft.classList.remove('is-resizing');
+                    document.body.classList.remove('resizing-col');
+                    resizerLeft.removeEventListener('pointermove', onPointerMove);
+                    resizerLeft.removeEventListener('pointerup', onPointerUp);
+                    resizerLeft.removeEventListener('pointercancel', onPointerUp);
+
+                    const finalWidth = Math.round(leftPanel.getBoundingClientRect().width);
+                    try {
+                        localStorage.setItem('movieToSprite_sample_leftPanelWidth', finalWidth);
+                    } catch (err) {}
+                    if (typeof updateVideoCropOverlay === 'function') updateVideoCropOverlay();
+                }
+
+                resizerLeft.addEventListener('pointermove', onPointerMove);
+                resizerLeft.addEventListener('pointerup', onPointerUp);
+                resizerLeft.addEventListener('pointercancel', onPointerUp);
+            });
+
+            // Dragging Right Resizer
+            resizerRight.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                resizerRight.setPointerCapture(e.pointerId);
+                resizerRight.classList.add('is-resizing');
+                document.body.classList.add('resizing-col');
+
+                const startX = e.clientX;
+                const startRightWidth = rightPanel.getBoundingClientRect().width;
+                const containerRect = container.getBoundingClientRect();
+                const leftWidth = leftPanel.getBoundingClientRect().width;
+                const minRight = 240;
+                const minCenter = 280;
+                const maxRight = Math.max(minRight, containerRect.width - leftWidth - minCenter - 16);
+
+                function onPointerMove(moveEvent) {
+                    const dx = moveEvent.clientX - startX;
+                    const newWidth = Math.round(Math.max(minRight, Math.min(maxRight, startRightWidth - dx)));
+                    rightPanel.style.width = newWidth + 'px';
+                    rightPanel.style.flex = `0 0 ${newWidth}px`;
+                    if (typeof updateVideoCropOverlay === 'function') updateVideoCropOverlay();
+                }
+
+                function onPointerUp(upEvent) {
+                    try {
+                        resizerRight.releasePointerCapture(upEvent.pointerId);
+                    } catch (err) {}
+                    resizerRight.classList.remove('is-resizing');
+                    document.body.classList.remove('resizing-col');
+                    resizerRight.removeEventListener('pointermove', onPointerMove);
+                    resizerRight.removeEventListener('pointerup', onPointerUp);
+                    resizerRight.removeEventListener('pointercancel', onPointerUp);
+
+                    const finalWidth = Math.round(rightPanel.getBoundingClientRect().width);
+                    try {
+                        localStorage.setItem('movieToSprite_sample_rightPanelWidth', finalWidth);
+                    } catch (err) {}
+                    if (typeof updateVideoCropOverlay === 'function') updateVideoCropOverlay();
+                }
+
+                resizerRight.addEventListener('pointermove', onPointerMove);
+                resizerRight.addEventListener('pointerup', onPointerUp);
+                resizerRight.addEventListener('pointercancel', onPointerUp);
+            });
+        }
+
+        function clampPanelSizes() {
+            const leftPanel = document.getElementById('slicerLeftPanel');
+            const rightPanel = document.getElementById('slicerRightPanel');
+            const container = document.getElementById('slicerContainer');
+            if (!leftPanel || !rightPanel || !container) return;
+
+            const containerWidth = container.clientWidth;
+            if (containerWidth < 700) return;
+
+            const leftWidth = leftPanel.getBoundingClientRect().width;
+            const rightWidth = rightPanel.getBoundingClientRect().width;
+            const minCenter = 280;
+
+            if (leftWidth + rightWidth + minCenter > containerWidth) {
+                const excess = (leftWidth + rightWidth + minCenter) - containerWidth;
+                const newLeft = Math.max(240, leftWidth - Math.ceil(excess / 2));
+                const newRight = Math.max(240, rightWidth - Math.ceil(excess / 2));
+                leftPanel.style.width = newLeft + 'px';
+                leftPanel.style.flex = `0 0 ${newLeft}px`;
+                rightPanel.style.width = newRight + 'px';
+                rightPanel.style.flex = `0 0 ${newRight}px`;
+            }
+        }
+
+        // --- Resizable Center Panel 3-Split (Storyboard / Multi-Inspector / Timeline) ---
+        function setupCenterPanelResizers() {
+            const storySec = document.getElementById('centerStoryboardSection');
+            const resizer1 = document.getElementById('centerResizer1');
+            const inspectorSec = document.getElementById('centerInspectorSection');
+            const resizer2 = document.getElementById('centerResizer2');
+            const timelineSec = document.getElementById('centerTimelineSection');
+            const centerPanel = document.getElementById('slicerCenterPanel');
+
+            if (!storySec || !resizer1 || !inspectorSec || !resizer2 || !timelineSec || !centerPanel) return;
+
+            // Restore saved heights from localStorage
+            try {
+                const savedStoryH = localStorage.getItem('movieToSprite_sample_centerStoryH') || localStorage.getItem('movieToSprite_centerStoryH');
+                const savedTimelineH = localStorage.getItem('movieToSprite_sample_centerTimelineH') || localStorage.getItem('movieToSprite_centerTimelineH');
+                if (savedStoryH) {
+                    const h = parseFloat(savedStoryH);
+                    if (!isNaN(h) && h >= 120 && h <= 600) {
+                        storySec.style.height = h + 'px';
+                        storySec.style.flex = `0 0 ${h}px`;
+                    }
+                }
+                if (savedTimelineH) {
+                    const h = parseFloat(savedTimelineH);
+                    if (!isNaN(h) && h >= 130 && h <= 500) {
+                        timelineSec.style.height = h + 'px';
+                        timelineSec.style.flex = `0 0 ${h}px`;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not restore center heights:', e);
+            }
+
+            // Double click resets heights to default
+            function resetDefaultCenterHeights() {
+                storySec.style.height = '250px';
+                storySec.style.flex = '0 0 250px';
+                timelineSec.style.height = '200px';
+                timelineSec.style.flex = '0 0 200px';
+                try {
+                    localStorage.removeItem('movieToSprite_sample_centerStoryH');
+                    localStorage.removeItem('movieToSprite_sample_centerTimelineH');
+                } catch (e) {}
+                if (typeof showToastNotification === 'function') {
+                    showToastNotification('중앙 패널 높이가 기본 비율로 복원되었습니다.');
+                }
+            }
+
+            resizer1.addEventListener('dblclick', resetDefaultCenterHeights);
+            resizer2.addEventListener('dblclick', resetDefaultCenterHeights);
+
+            // Resizer 1 (Storyboard <-> Multi-Inspector)
+            resizer1.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                resizer1.setPointerCapture(e.pointerId);
+                resizer1.classList.add('is-resizing');
+                document.body.classList.add('resizing-row');
+
+                const startY = e.clientY;
+                const startH = storySec.getBoundingClientRect().height;
+                const panelRect = centerPanel.getBoundingClientRect();
+                const minStoryH = 120;
+                const minTimelineH = 130;
+                const minInspectorH = 140;
+                const maxStoryH = Math.max(minStoryH, panelRect.height - minTimelineH - minInspectorH - 24);
+
+                function onPointerMove(ev) {
+                    const dy = ev.clientY - startY;
+                    const newH = Math.round(Math.max(minStoryH, Math.min(maxStoryH, startH + dy)));
+                    storySec.style.height = newH + 'px';
+                    storySec.style.flex = `0 0 ${newH}px`;
+                    if (typeof updateStoryboardLayout === 'function') updateStoryboardLayout();
+                }
+
+                function onPointerUp(ev) {
+                    try { resizer1.releasePointerCapture(ev.pointerId); } catch (err) {}
+                    resizer1.classList.remove('is-resizing');
+                    document.body.classList.remove('resizing-row');
+                    resizer1.removeEventListener('pointermove', onPointerMove);
+                    resizer1.removeEventListener('pointerup', onPointerUp);
+                    resizer1.removeEventListener('pointercancel', onPointerUp);
+
+                    const finalH = Math.round(storySec.getBoundingClientRect().height);
+                    try { localStorage.setItem('movieToSprite_sample_centerStoryH', finalH); } catch (err) {}
+                    if (typeof updateStoryboardLayout === 'function') updateStoryboardLayout();
+                }
+
+                resizer1.addEventListener('pointermove', onPointerMove);
+                resizer1.addEventListener('pointerup', onPointerUp);
+                resizer1.addEventListener('pointercancel', onPointerUp);
+            });
+
+            // Resizer 2 (Multi-Inspector <-> Bottom Timeline)
+            resizer2.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                resizer2.setPointerCapture(e.pointerId);
+                resizer2.classList.add('is-resizing');
+                document.body.classList.add('resizing-row');
+
+                const startY = e.clientY;
+                const startH = timelineSec.getBoundingClientRect().height;
+                const panelRect = centerPanel.getBoundingClientRect();
+                const currentStoryH = storySec.getBoundingClientRect().height;
+                const minTimelineH = 130;
+                const minInspectorH = 140;
+                const maxTimelineH = Math.max(minTimelineH, panelRect.height - currentStoryH - minInspectorH - 24);
+
+                function onPointerMove(ev) {
+                    // Since Timeline is at the bottom, dragging UP (dy < 0) expands Timeline
+                    const dy = ev.clientY - startY;
+                    const newH = Math.round(Math.max(minTimelineH, Math.min(maxTimelineH, startH - dy)));
+                    timelineSec.style.height = newH + 'px';
+                    timelineSec.style.flex = `0 0 ${newH}px`;
+                }
+
+                function onPointerUp(ev) {
+                    try { resizer2.releasePointerCapture(ev.pointerId); } catch (err) {}
+                    resizer2.classList.remove('is-resizing');
+                    document.body.classList.remove('resizing-row');
+                    resizer2.removeEventListener('pointermove', onPointerMove);
+                    resizer2.removeEventListener('pointerup', onPointerUp);
+                    resizer2.removeEventListener('pointercancel', onPointerUp);
+
+                    const finalH = Math.round(timelineSec.getBoundingClientRect().height);
+                    try { localStorage.setItem('movieToSprite_sample_centerTimelineH', finalH); } catch (err) {}
+                }
+
+                resizer2.addEventListener('pointermove', onPointerMove);
+                resizer2.addEventListener('pointerup', onPointerUp);
+                resizer2.addEventListener('pointercancel', onPointerUp);
+            });
+
+            if (window.ResizeObserver) {
+                const ro = new ResizeObserver(() => {
+                    if (typeof updateStoryboardLayout === 'function') updateStoryboardLayout();
+                });
+                ro.observe(storySec);
+            }
+            window.addEventListener('resize', () => {
+                if (typeof updateStoryboardLayout === 'function') updateStoryboardLayout();
+            });
+        }
+
+        // --- Side Panels Internal Tab Switching ---
+        function switchLeftPanelTab(tabName) {
+            const panel = document.getElementById('slicerLeftPanel');
+            if (!panel) return;
+            panel.querySelectorAll('.side-panel-tabs-header .side-tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.sidetab === tabName);
+            });
+            const chroma = document.getElementById('leftTabChroma');
+            const crop = document.getElementById('leftTabCrop');
+            if (chroma) chroma.classList.toggle('active', tabName === 'chroma');
+            if (crop) crop.classList.toggle('active', tabName === 'crop');
+            if (tabName === 'crop') {
+                updateVideoCropOverlay();
+            }
+        }
+
+        function switchRightPanelTab(tabName) {
+            const panel = document.getElementById('slicerRightPanel');
+            if (!panel) return;
+            panel.querySelectorAll('.side-panel-tabs-header .side-tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.sidetab === tabName);
+            });
+            const sprite = document.getElementById('rightTabSprite');
+            const exp = document.getElementById('rightTabExport');
+            const json = document.getElementById('rightTabJson');
+            if (sprite) sprite.classList.toggle('active', tabName === 'sprite');
+            if (exp) exp.classList.toggle('active', tabName === 'export');
+            if (json) {
+                json.classList.toggle('active', tabName === 'json');
+                updateJsonPreview();
+            }
+        }
+
+        function copyJsonToClipboard() {
+            const text = JSON.stringify(projectConfig, null, 2);
+            navigator.clipboard.writeText(text).then(() => {
+                if (typeof showToastNotification === 'function') {
+                    showToastNotification('프로젝트 설정 JSON이 클립보드에 복사되었습니다.');
+                } else {
+                    alert('프로젝트 설정 JSON이 클립보드에 복사되었습니다.');
+                }
+            }).catch(err => alert('복사 실패: ' + err));
+        }
+
+        // --- Multi-Inspector Tab Switcher & Logic ---
+        let currentInspectorTab = 'preview';
+
+        function switchInspectorTab(tabId) {
+            currentInspectorTab = tabId;
+            document.querySelectorAll('.inspector-tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabId);
+            });
+            document.querySelectorAll('.inspector-tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            if (tabId === 'preview') {
+                const p = document.getElementById('inspectorTabPreview');
+                if (p) p.classList.add('active');
+                renderCenterPreviewFrame();
+                renderCenterFilmstrip();
+            } else if (tabId === 'prompt') {
+                const pr = document.getElementById('inspectorTabPrompt');
+                if (pr) pr.classList.add('active');
+                populateInspectorPrompt();
+            } else if (tabId === 'audio') {
+                const a = document.getElementById('inspectorTabAudio');
+                if (a) a.classList.add('active');
+                updateInspectorAudioInfo();
+            }
+        }
+
+        function populateInspectorPrompt() {
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!activeState) return;
+            const nameEl = document.getElementById('inspectorStateName');
+            const actEl = document.getElementById('inspectorStateAction');
+            const prEl = document.getElementById('inspectorStatePrompt');
+            const loopEl = document.getElementById('inspectorStateLoop');
+            const statusEl = document.getElementById('inspectorStateStatus');
+            if (nameEl) nameEl.value = activeState.name || '';
+            if (actEl) actEl.value = activeState.action || '';
+            if (prEl) prEl.value = activeState.statePrompt || '';
+            if (loopEl) loopEl.checked = !!activeState.loop;
+            if (statusEl) statusEl.value = activeState.status || 'stable';
+        }
+
+        function saveInspectorStatePrompt() {
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!activeState) return;
+            const nameEl = document.getElementById('inspectorStateName');
+            const actEl = document.getElementById('inspectorStateAction');
+            const prEl = document.getElementById('inspectorStatePrompt');
+            const loopEl = document.getElementById('inspectorStateLoop');
+            const statusEl = document.getElementById('inspectorStateStatus');
+            if (nameEl && nameEl.value.trim()) activeState.name = nameEl.value.trim().toLowerCase();
+            if (actEl) activeState.action = actEl.value.trim();
+            if (prEl) activeState.statePrompt = prEl.value.trim();
+            if (loopEl) activeState.loop = loopEl.checked;
+            if (statusEl) activeState.status = statusEl.value;
+
+            renderStates();
+            updateJsonPreview();
+            if (typeof showToastNotification === 'function') {
+                showToastNotification(`'${activeState.name}' 상태 속성이 성공적으로 저장되었습니다.`);
+            }
+        }
+
+        function updateInspectorAudioInfo() {
+            const infoEl = document.getElementById('inspectorAudioRangeInfo');
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!infoEl || !activeState) return;
+            const fps = projectConfig.fps || 30;
+            const duration = ((activeState.endFrame - activeState.startFrame + 1) / fps).toFixed(2);
+            infoEl.textContent = `'${activeState.name}' 상태: 프레임 ${activeState.startFrame} ~ ${activeState.endFrame} (구간 길이: ${duration}초, ${fps} FPS)`;
+        }
+
+        function extractAudioForActiveState() {
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!activeState) return;
+            window.open('VideoToWave.html', '_blank');
+        }
+
+        function exportSingleUnityAnimPrompt() {
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!activeState) return;
+            const clipInfo = {
+                stateName: activeState.name,
+                startFrame: activeState.startFrame,
+                endFrame: activeState.endFrame,
+                frameCount: activeState.endFrame - activeState.startFrame + 1,
+                fps: projectConfig.fps || 30,
+                loop: !!activeState.loop,
+                action: activeState.action || ''
+            };
+            navigator.clipboard.writeText(JSON.stringify(clipInfo, null, 2)).then(() => {
+                if (typeof showToastNotification === 'function') {
+                    showToastNotification(`'${activeState.name}' 클립 정보가 클립보드에 복사되었습니다.`);
+                }
+            });
+        }
+
+        // --- Filmstrip Renderer ---
+        function renderCenterFilmstrip() {
+            const track = document.getElementById('centerFrameFilmstrip');
+            const labelEl = document.getElementById('filmstripStateLabel');
+            if (!track) return;
+
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!activeState) {
+                track.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85em; padding: 10px;">상태를 선택하세요.</div>';
+                return;
+            }
+
+            if (labelEl) labelEl.textContent = activeState.name || '-';
+
+            const framesList = getStateFramesList(activeState);
+            if (framesList.length === 0) {
+                track.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85em; padding: 10px;">비디오 로드 후 프레임이 표시됩니다.</div>';
+                return;
+            }
+
+            track.innerHTML = '';
+            framesList.forEach((frameNum, idx) => {
+                const card = document.createElement('div');
+                card.className = `filmstrip-card ${idx === centerPreviewIndex ? 'active-frame' : ''}`;
+                card.dataset.frameIndex = idx;
+                card.title = `프레임 F${frameNum} (클릭 시 이동)`;
+
+                const thumbImg = document.createElement('img');
+                thumbImg.className = 'filmstrip-thumb';
+                thumbImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="%23222"><rect width="100%" height="100%"/></svg>';
+
+                const label = document.createElement('span');
+                label.className = 'frame-num';
+                label.textContent = `F${frameNum}`;
+
+                card.appendChild(thumbImg);
+                card.appendChild(label);
+
+                card.onclick = () => {
+                    centerPreviewIndex = idx;
+                    renderCenterPreviewFrame();
+                    if (previewVideo && previewVideo.duration) {
+                        previewVideo.currentTime = frameNum / (projectConfig.fps || 30);
+                    }
+                    track.querySelectorAll('.filmstrip-card').forEach(c => c.classList.remove('active-frame'));
+                    card.classList.add('active-frame');
+                };
+
+                track.appendChild(card);
+            });
+        }
+
+        // --- Center Live Animation Preview Player Logic ---
+        let centerPreviewIsPlaying = true;
+        let centerPreviewIndex = 0;
+        let centerPreviewIntervalId = null;
+        let centerPreviewFps = 30;
+
+        function startCenterPreviewLoop() {
+            if (centerPreviewIntervalId) clearInterval(centerPreviewIntervalId);
+            const intervalMs = Math.round(1000 / (centerPreviewFps || 30));
+            centerPreviewIntervalId = setInterval(() => {
+                if (!centerPreviewIsPlaying) return;
+                advanceCenterPreview(1);
+            }, intervalMs);
+        }
+
+        function toggleCenterPreviewPlayback() {
+            centerPreviewIsPlaying = !centerPreviewIsPlaying;
+            const btn = document.getElementById('centerPrevPlayBtn');
+            if (btn) {
+                btn.textContent = centerPreviewIsPlaying ? '⏸️ 일시정지' : '▶️ 재생';
+            }
+        }
+
+        function stepCenterPreviewFrame(dir) {
+            centerPreviewIsPlaying = false;
+            const btn = document.getElementById('centerPrevPlayBtn');
+            if (btn) btn.textContent = '▶️ 재생';
+            advanceCenterPreview(dir);
+        }
+
+        function changeCenterPreviewFps(val) {
+            centerPreviewFps = parseInt(val) || 30;
+            startCenterPreviewLoop();
+        }
+
+        function toggleCenterCheckerboard() {
+            const wrapper = document.getElementById('centerPreviewCanvasWrapper');
+            if (wrapper) {
+                wrapper.classList.toggle('checkerboard-bg');
+            }
+        }
+
+        function advanceCenterPreview(direction = 1) {
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!activeState) return;
+
+            const framesList = getStateFramesList(activeState);
+            if (framesList.length === 0) return;
+
+            centerPreviewIndex = (centerPreviewIndex + direction + framesList.length) % framesList.length;
+            renderCenterPreviewFrame();
+
+            // Sync active frame in filmstrip
+            const track = document.getElementById('centerFrameFilmstrip');
+            if (track) {
+                const activeCard = track.querySelector(`[data-frame-index="${centerPreviewIndex}"]`);
+                if (activeCard) {
+                    track.querySelectorAll('.filmstrip-card').forEach(c => c.classList.remove('active-frame'));
+                    activeCard.classList.add('active-frame');
+                }
+            }
+        }
+
+        function updateCenterPreview() {
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!activeState) return;
+
+            renderCenterPreviewFrame();
+            renderCenterFilmstrip();
+
+            if (currentInspectorTab === 'prompt') {
+                populateInspectorPrompt();
+            } else if (currentInspectorTab === 'audio') {
+                updateInspectorAudioInfo();
+            }
+        }
+
+        function onActiveStateChanged() {
+            updateTimelineHandles();
+            renderStates();
+            updateCenterPreview();
+        }
+
+        function renderCenterPreviewFrame() {
+            const canvas = document.getElementById('centerPreviewCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const noFramesMsg = document.getElementById('centerPreviewNoFrames');
+            const counterEl = document.getElementById('centerPreviewFrameCounter');
+            const timeEl = document.getElementById('centerPreviewTimeCounter');
+
+            const activeState = projectConfig.states[activeStateIndex];
+            if (!activeState) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (noFramesMsg) noFramesMsg.style.display = 'block';
+                return;
+            }
+
+            const framesList = getStateFramesList(activeState);
+            if (framesList.length === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (noFramesMsg) noFramesMsg.style.display = 'block';
+                if (counterEl) counterEl.textContent = '프레임: 0 / 0';
+                return;
+            }
+
+            if (centerPreviewIndex >= framesList.length) centerPreviewIndex = 0;
+            const targetFrame = framesList[centerPreviewIndex];
+
+            if (counterEl) counterEl.textContent = `프레임: ${centerPreviewIndex + 1} / ${framesList.length} (F${targetFrame})`;
+            if (timeEl) timeEl.textContent = `${(targetFrame / (projectConfig.fps || 30)).toFixed(2)}s`;
+
+            // Draw directly from previewVideo or hiddenVideo
+            const sourceVideo = (previewVideo && previewVideo.readyState >= 2) ? previewVideo : hiddenVideo;
+            if (videoBlobUrl && sourceVideo && sourceVideo.readyState >= 2) {
+                if (noFramesMsg) noFramesMsg.style.display = 'none';
+                const { sx, sy, sw, sh } = getCropRect();
+                if (canvas.width !== sw || canvas.height !== sh) {
+                    canvas.width = sw;
+                    canvas.height = sh;
+                }
+                ctx.clearRect(0, 0, sw, sh);
+                ctx.drawImage(sourceVideo, sx, sy, sw, sh, 0, 0, sw, sh);
+                if (projectConfig.chromaKey.enabled) {
+                    applyChromaKeyFilter(ctx, sw, sh);
+                }
+            } else {
+                if (noFramesMsg) noFramesMsg.style.display = 'block';
+            }
+        }
 
         function setupEventListeners() {
             // Video loader
@@ -2349,20 +3629,16 @@
                 card.innerHTML = `
                     <div class="state-card-header">
                         <span class="state-card-title">${state.name}</span>
-                        <button class="state-card-delete" onclick="deleteState(${index})">X</button>
+                        <button class="state-card-delete" onclick="deleteState(${index})" title="'${state.name}' 상태 삭제">✕</button>
                     </div>
                     <div class="state-frames-preview">
                         ${thumbsHTML}
                     </div>
                     <div class="state-card-details">
-                        <span class="label">프레임수:</span>
+                        <span class="label">프레임:</span>
                         <span class="value">${state.endFrame - state.startFrame + 1}</span>
-                        
-                        <span class="label">시작시간:</span>
-                        <span class="value">${formatTime(state.startFrame / projectConfig.fps)}</span>
-                        
-                        <span class="label">끝시간:</span>
-                        <span class="value">${formatTime(state.endFrame / projectConfig.fps)}</span>
+                        <span class="label">시간:</span>
+                        <span class="value">${formatTime(state.startFrame / projectConfig.fps)} ~ ${formatTime(state.endFrame / projectConfig.fps)}</span>
                     </div>
                 `;
 
@@ -2382,6 +3658,46 @@
 
             // Draw other state range visual regions on timeline
             drawTimelineZones();
+            updateCenterPreview();
+            updateStoryboardLayout();
+        }
+
+        // Dynamic Storyboard Grid calculation based on height, width, and item count
+        function updateStoryboardLayout() {
+            const container = document.getElementById('storyboardContainer');
+            const section = document.getElementById('centerStoryboardSection');
+            if (!container || !section) return;
+
+            const titleRow = section.querySelector('.storyboard-title-row');
+            const titleH = titleRow ? titleRow.offsetHeight : 34;
+            // Usable height for cards inside storyboard section
+            const availH = section.clientHeight - titleH - 24;
+            const cardH = 145;
+            const cardW = 190;
+            const gap = 10;
+
+            // How many rows can comfortably fit in available height
+            const maxRows = Math.max(1, Math.floor((availH + gap) / (cardH + gap)));
+            const cardsCount = container.children.length;
+            if (cardsCount === 0) return;
+
+            // Available width of the container
+            const availW = container.clientWidth || (section.clientWidth - 30);
+            const visibleCols = Math.max(1, Math.floor((availW + gap) / (cardW + gap)));
+
+            // If all cards fit in 1 row within visible width, keep 1 row.
+            // Otherwise, if height permits (maxRows > 1), wrap into multiple rows.
+            let effectiveRows = 1;
+            if (cardsCount > visibleCols && maxRows > 1) {
+                effectiveRows = Math.min(maxRows, Math.ceil(cardsCount / visibleCols));
+            }
+
+            // Columns needed to display all cards across effectiveRows
+            const numCols = Math.max(visibleCols, Math.ceil(cardsCount / effectiveRows));
+
+            container.style.gridTemplateRows = `repeat(${effectiveRows}, ${cardH}px)`;
+            container.style.gridTemplateColumns = `repeat(${numCols}, ${cardW}px)`;
+            container.style.gridAutoFlow = 'row';
         }
 
         // Add visual zones of other states on timeline
