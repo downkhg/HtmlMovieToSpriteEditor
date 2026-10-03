@@ -2,7 +2,7 @@
 프롬프터: downkhg@gmail.com
 모델: gemini
 에이전트: Antigravity
-마지막수정사항: 비율 자동 활성화 시 프레임 WxH 입력창을 읽기 전용(readonly)으로 전환하고, 크롭 및 기준 해상도/축 변경 시 실시간 자동 갱신되도록 개선
+마지막수정사항: 프레임 수동 편집창에서 상태(파일) 이름 직접 수정 기능 및 스토리보드 목록에서 상태 카드를 좌우 이동(◀/▶) 또는 드래그 앤 드롭으로 자유롭게 순서 변경할 수 있는 기능 추가
 -->
 <!DOCTYPE html>
 <html lang="ko">
@@ -887,6 +887,46 @@
         .state-storyboard-card.active-card {
             border-color: var(--accent-color);
             box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .state-storyboard-card.is-dragging {
+            opacity: 0.45;
+            transform: scale(0.96);
+            border: 2px dashed var(--accent-color);
+        }
+
+        .state-storyboard-card.drag-over {
+            border-color: var(--info-color);
+            box-shadow: 0 0 14px rgba(139, 233, 253, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .state-card-order-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 0 4px;
+            font-size: 0.72em;
+            height: 18px;
+            line-height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .state-card-order-btn:hover:not(:disabled) {
+            border-color: var(--accent-color);
+            color: #ffffff;
+            background-color: var(--accent-glow);
+        }
+
+        .state-card-order-btn:disabled {
+            opacity: 0.25;
+            cursor: not-allowed;
+            border-color: transparent;
         }
 
         .state-card-header {
@@ -2247,12 +2287,21 @@
                         <h3>📊 요약 정보</h3>
                         <div
                             style="font-size: 0.85em; display: grid; grid-template-columns: auto 1fr; row-gap: 8px; column-gap: 15px; color: var(--text-muted);">
+                            <span>상태(파일) 이름:</span>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <input type="text" id="veStateNameInput" oninput="onVeStateNameInputChange(this.value)"
+                                    style="width: 100%; height: 26px; padding: 2px 6px; font-size: 0.85em; font-weight: bold; color: var(--accent-color); background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 4px;"
+                                    placeholder="상태명 (예: idle, walk)">
+                            </div>
                             <span>전체 구간 프레임:</span> <span id="veTotalRangeFrames"
                                 style="color:var(--text-color); font-weight:bold; text-align:right;">0</span>
                             <span>선택된 스프라이트:</span> <span id="veSelectedSpritesCount"
                                 style="color:var(--accent-color); font-weight:bold; text-align:right;">0</span>
                             <span>총 재생 시간:</span> <span id="veTotalDuration"
                                 style="color:var(--text-color); text-align:right;">0.00s</span>
+                            <span>저장 파일명 예시:</span>
+                            <span id="veExpectedFilename"
+                                style="color: var(--info-color); font-size: 0.76em; font-family: monospace; word-break: break-all; text-align: right; grid-column: 1 / -1; background: rgba(0,0,0,0.25); padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border-color);">-</span>
                         </div>
                     </div>
 
@@ -2410,7 +2459,8 @@
         }
 
         // --- Normalizer & synchronizer ---
-        function normalizeConfigStates() {
+        // [구버전 v1] 기존 기본 프레임 정규화 함수 (호환용 보존)
+        function normalizeConfigStatesV1() {
             projectConfig.states = projectConfig.states.map((state, idx) => {
                 const name = state.name || `state_${idx}`;
                 return {
@@ -2425,6 +2475,34 @@
                     locked: state.locked !== undefined ? !!state.locked : true
                 };
             });
+        }
+
+        // [신버전 v2] 수동 편집 프레임(customFrames) 보존 및 안전 검증 정규화 함수
+        function normalizeConfigStatesV2() {
+            projectConfig.states = projectConfig.states.map((state, idx) => {
+                const name = state.name || `state_${idx}`;
+                const validCustomFrames = (Array.isArray(state.customFrames) && state.customFrames.length > 0)
+                    ? state.customFrames.map(f => parseInt(f)).filter(f => !isNaN(f)).sort((a, b) => a - b)
+                    : null;
+
+                return {
+                    name: name.trim().toLowerCase(),
+                    startFrame: state.startFrame !== undefined ? parseInt(state.startFrame) : 0,
+                    endFrame: state.endFrame !== undefined ? parseInt(state.endFrame) : 30,
+                    frameSkip: state.frameSkip !== undefined ? Math.max(1, parseInt(state.frameSkip)) : 1,
+                    loop: state.loop !== undefined ? !!state.loop : true,
+                    action: state.action || `${name} action motion`,
+                    status: state.status || "stable",
+                    statePrompt: state.statePrompt || `${state.action || name}, dynamic motion, focused`,
+                    locked: state.locked !== undefined ? !!state.locked : true,
+                    customFrames: validCustomFrames
+                };
+            });
+        }
+
+        // 기본 활성 버전 지정 (필요 시 normalizeConfigStatesV1 또는 normalizeConfigStatesV2로 변경 가능)
+        function normalizeConfigStates() {
+            normalizeConfigStatesV2();
         }
 
         function syncUIInputs() {
@@ -3705,7 +3783,8 @@
         }
 
         // --- Load Unified Project configurations ---
-        function loadProjectJSON(e) {
+        // [구버전 v1] 기존 JSON 설정 로드 함수 (호환용 보존)
+        function loadProjectJSONV1(e) {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -3718,7 +3797,6 @@
                         const isLegacyPromptOnly = loadedConfig.states && loadedConfig.states.some(s => s.startFrame === undefined || s.endFrame === undefined);
 
                         if (isLegacyPromptOnly) {
-                            // Map states, mapping incoming states and keeping/calculating frame ranges
                             const incomingStates = loadedConfig.states || [];
                             const updatedStates = [];
                             incomingStates.forEach(incomingState => {
@@ -3762,7 +3840,6 @@
 
                             showToastNotification("프롬프트 설정 정보를 성공적으로 연동했습니다!");
                         } else {
-                            // It's a standard complete project
                             projectConfig = {
                                 ...projectConfig,
                                 ...loadedConfig
@@ -3773,7 +3850,6 @@
                         if (!projectConfig.crop) {
                             projectConfig.crop = { x: 0.5, y: 0.5, width: 1.0, height: 1.0 };
                         }
-                        // Migrate legacy 'size' field to separate width/height
                         if (projectConfig.crop.size !== undefined && projectConfig.crop.width === undefined) {
                             projectConfig.crop.width = projectConfig.crop.size;
                             projectConfig.crop.height = projectConfig.crop.size;
@@ -3781,7 +3857,7 @@
                         if (projectConfig.crop.width === undefined) projectConfig.crop.width = 1.0;
                         if (projectConfig.crop.height === undefined) projectConfig.crop.height = 1.0;
 
-                        normalizeConfigStates();
+                        normalizeConfigStatesV1();
                         activeStateIndex = 0;
                         syncUIInputs();
                         recalculateTotalFrames();
@@ -3799,6 +3875,106 @@
                 }
             };
             reader.readAsText(file);
+        }
+
+        // [신버전 v2] 수동 편집 프레임(customFrames) 보존 및 안전 정규화 지원 JSON 로드 함수
+        function loadProjectJSONV2(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                try {
+                    const loadedConfig = JSON.parse(event.target.result);
+                    if (loadedConfig.characterId) {
+                        const isLegacyPromptOnly = loadedConfig.states && loadedConfig.states.some(s => s.startFrame === undefined || s.endFrame === undefined);
+
+                        if (isLegacyPromptOnly) {
+                            const incomingStates = loadedConfig.states || [];
+                            const updatedStates = [];
+                            incomingStates.forEach(incomingState => {
+                                const existing = projectConfig.states.find(s => s.name === incomingState.name);
+                                if (existing) {
+                                    updatedStates.push({
+                                        ...incomingState,
+                                        startFrame: existing.startFrame,
+                                        endFrame: existing.endFrame,
+                                        customFrames: existing.customFrames ? [...existing.customFrames] : (incomingState.customFrames ? [...incomingState.customFrames] : null)
+                                    });
+                                } else {
+                                    let lastEndFrame = -1;
+                                    projectConfig.states.forEach(s => {
+                                        if (s.endFrame > lastEndFrame) lastEndFrame = s.endFrame;
+                                    });
+                                    updatedStates.forEach(s => {
+                                        if (s.endFrame > lastEndFrame) lastEndFrame = s.endFrame;
+                                    });
+
+                                    const frameDuration = projectConfig.fps || 30;
+                                    const newStart = lastEndFrame + 1;
+                                    const newEnd = newStart + frameDuration - 1;
+
+                                    updatedStates.push({
+                                        ...incomingState,
+                                        startFrame: Math.max(0, newStart),
+                                        endFrame: Math.max(0, newEnd),
+                                        customFrames: incomingState.customFrames ? [...incomingState.customFrames] : null
+                                    });
+                                }
+                            });
+
+                            projectConfig.characterId = loadedConfig.characterId;
+                            if (loadedConfig.chromaColor) projectConfig.chromaKey.color = loadedConfig.chromaColor;
+                            if (loadedConfig.tolerance !== undefined) projectConfig.chromaKey.tolerance = parseInt(loadedConfig.tolerance);
+                            if (loadedConfig.softEdge !== undefined) projectConfig.chromaKey.softEdge = parseFloat(loadedConfig.softEdge);
+                            projectConfig.states = updatedStates;
+
+                            if (loadedConfig.masterPrompt) projectConfig.masterPrompt = loadedConfig.masterPrompt;
+                            if (loadedConfig.audioSpecifications) projectConfig.audioSpecifications = loadedConfig.audioSpecifications;
+                            if (loadedConfig.cclNoise !== undefined) projectConfig.chromaKey.cclNoise = loadedConfig.cclNoise;
+
+                            showToastNotification("프롬프트 설정 정보를 성공적으로 연동했습니다!");
+                        } else {
+                            projectConfig = {
+                                ...projectConfig,
+                                ...loadedConfig
+                            };
+                            showToastNotification("프로젝트 설정을 성공적으로 불렀습니다!");
+                        }
+
+                        if (!projectConfig.crop) {
+                            projectConfig.crop = { x: 0.5, y: 0.5, width: 1.0, height: 1.0 };
+                        }
+                        if (projectConfig.crop.size !== undefined && projectConfig.crop.width === undefined) {
+                            projectConfig.crop.width = projectConfig.crop.size;
+                            projectConfig.crop.height = projectConfig.crop.size;
+                        }
+                        if (projectConfig.crop.width === undefined) projectConfig.crop.width = 1.0;
+                        if (projectConfig.crop.height === undefined) projectConfig.crop.height = 1.0;
+
+                        normalizeConfigStatesV2();
+                        activeStateIndex = 0;
+                        syncUIInputs();
+                        recalculateTotalFrames();
+                        updateTimelineRuler();
+                        renderStates();
+                        updateTimelineHandles();
+                        updateJsonPreview();
+                        invalidateFrameCache();
+                        triggerBatchExtract();
+                    } else {
+                        alert("올바르지 않은 JSON 설정 파일 구조입니다.");
+                    }
+                } catch (err) {
+                    alert("JSON 설정 로드 실패: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 기본 활성 버전 지정 (필요 시 loadProjectJSONV1 또는 loadProjectJSONV2로 변경 가능)
+        function loadProjectJSON(e) {
+            loadProjectJSONV2(e);
         }
 
         // --- Save Project configuration ---
@@ -4636,6 +4812,38 @@
         }
 
         // --- Render Storyboard elements (Slicer view) ---
+        function moveStateOrder(fromIndex, toIndex) {
+            if (fromIndex === toIndex) return;
+            if (fromIndex < 0 || fromIndex >= projectConfig.states.length) return;
+            if (toIndex < 0 || toIndex >= projectConfig.states.length) return;
+
+            const activeStateObj = projectConfig.states[activeStateIndex];
+            const movedItem = projectConfig.states.splice(fromIndex, 1)[0];
+            projectConfig.states.splice(toIndex, 0, movedItem);
+
+            // Re-identify active state index
+            if (activeStateObj) {
+                const newActiveIdx = projectConfig.states.indexOf(activeStateObj);
+                activeStateIndex = newActiveIdx !== -1 ? newActiveIdx : 0;
+            }
+
+            // Remap frame caches
+            const newCache = {};
+            projectConfig.states.forEach((s, idx) => {
+                // If the old item had cached thumbnails, keep if we can track, else extractStateFrames will repopulate
+            });
+            invalidateFrameCache();
+            triggerBatchExtract();
+
+            renderStates();
+            renderPromptStates();
+            updateTimelineHandles();
+            updateJsonPreview();
+            showToastNotification(`'${movedItem.name}' 상태 순서가 변경되었습니다. (${fromIndex + 1}번 ➔ ${toIndex + 1}번)`);
+        }
+
+        let draggedStateCardIndex = null;
+
         function renderStates() {
             const placeholder = storyboardContainer.querySelector('.add-state-card-placeholder');
             const oldCards = storyboardContainer.querySelectorAll('.state-storyboard-card');
@@ -4644,13 +4852,49 @@
             projectConfig.states.forEach((state, index) => {
                 const card = document.createElement('div');
                 card.className = `state-storyboard-card ${index === activeStateIndex ? 'active-card' : ''}`;
+                card.draggable = true;
+                card.dataset.stateIndex = index;
 
                 if (isSwapMode && index === firstSwapIndex) {
                     card.className += ' swap-selected';
                 }
 
+                // Drag & Drop handlers for reordering
+                card.addEventListener('dragstart', (e) => {
+                    draggedStateCardIndex = index;
+                    card.classList.add('is-dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', index);
+                });
+
+                card.addEventListener('dragend', () => {
+                    draggedStateCardIndex = null;
+                    card.classList.remove('is-dragging');
+                    document.querySelectorAll('.state-storyboard-card').forEach(c => c.classList.remove('drag-over'));
+                });
+
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (draggedStateCardIndex !== null && draggedStateCardIndex !== index) {
+                        card.classList.add('drag-over');
+                    }
+                });
+
+                card.addEventListener('dragleave', () => {
+                    card.classList.remove('drag-over');
+                });
+
+                card.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    card.classList.remove('drag-over');
+                    if (draggedStateCardIndex !== null && draggedStateCardIndex !== index) {
+                        moveStateOrder(draggedStateCardIndex, index);
+                    }
+                });
+
                 card.onclick = (e) => {
-                    if (e.target.closest('.state-card-delete')) return;
+                    if (e.target.closest('.state-card-delete') || e.target.closest('.state-card-order-btn')) return;
 
                     if (isSwapMode) {
                         handleSwapSelection(index);
@@ -4688,10 +4932,19 @@
                     }
                 }
 
+                const isFirst = index === 0;
+                const isLast = index === projectConfig.states.length - 1;
+
                 card.innerHTML = `
                     <div class="state-card-header">
-                        <span class="state-card-title">${state.name}</span>
-                        <button class="state-card-delete" onclick="deleteState(${index})" title="'${state.name}' 상태 삭제">✕</button>
+                        <div style="display: flex; align-items: center; gap: 4px; overflow: hidden; max-width: 120px;">
+                            <span class="state-card-title" title="${state.name}">${state.name}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 2px;">
+                            <button type="button" class="state-card-order-btn" ${isFirst ? 'disabled' : ''} onclick="event.stopPropagation(); moveStateOrder(${index}, ${index - 1})" title="순서 앞으로 이동 (◀)">◀</button>
+                            <button type="button" class="state-card-order-btn" ${isLast ? 'disabled' : ''} onclick="event.stopPropagation(); moveStateOrder(${index}, ${index + 1})" title="순서 뒤로 이동 (▶)">▶</button>
+                            <button class="state-card-delete" onclick="event.stopPropagation(); deleteState(${index})" title="'${state.name}' 상태 삭제">✕</button>
+                        </div>
                     </div>
                     <div class="state-frames-preview">
                         ${thumbsHTML}
@@ -5129,7 +5382,12 @@
 
             const activeState = projectConfig.states[activeStateIndex];
             const stateSuffix = activeState ? `_${activeState.name}` : '';
-            a.download = `${projectConfig.characterId}${stateSuffix}_spritesheet.png`;
+            const fWidth = parseInt(document.getElementById('frameWidth').value) || 128;
+            const fHeight = parseInt(document.getElementById('frameHeight').value) || 128;
+            const framesList = activeState ? getStateFramesList(activeState) : [];
+            const frameCount = framesList.length;
+
+            a.download = `${projectConfig.characterId}${stateSuffix}_spritesheet_${fWidth}_${fHeight}_${frameCount}.png`;
 
             document.body.appendChild(a);
             a.click();
@@ -5951,6 +6209,10 @@ ${mappingsYaml}  m_Events: []
             setTimeout(() => modal.classList.add('show'), 10);
 
             document.getElementById('veStateName').textContent = activeState.name;
+            const nameInput = document.getElementById('veStateNameInput');
+            if (nameInput) {
+                nameInput.value = activeState.name;
+            }
 
             // Set selections
             veSelectedFrames = getStateFramesList(activeState);
@@ -5967,6 +6229,15 @@ ${mappingsYaml}  m_Events: []
             // Start preview loop
             startVePreviewAnimation();
             updateVeSummaryInfo(activeState);
+        }
+
+        function onVeStateNameInputChange(val) {
+            const trimmed = val.trim();
+            document.getElementById('veStateName').textContent = trimmed || "(이름 없음)";
+            const activeState = projectConfig.states[activeStateIndex];
+            if (activeState) {
+                updateVeSummaryInfo(activeState);
+            }
         }
 
         function renderVeFramesGridPlaceholders(state) {
@@ -6129,6 +6400,20 @@ ${mappingsYaml}  m_Events: []
 
             const duration = totalRange / projectConfig.fps;
             document.getElementById('veTotalDuration').textContent = `${duration.toFixed(2)}s`;
+
+            // Update expected filename preview
+            const charId = projectConfig.characterId || "character";
+            const nameInput = document.getElementById('veStateNameInput');
+            const rawName = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : state.name;
+            const cleanName = rawName.replace(/[^a-zA-Z0-9가-힣_-]/g, "") || "state";
+            const fw = parseInt(document.getElementById('frameWidth').value) || 128;
+            const fh = parseInt(document.getElementById('frameHeight').value) || 128;
+            const count = veSelectedFrames.length;
+            const previewFilename = `${charId}_${cleanName}_spritesheet_${fw}_${fh}_${count}.png`;
+            const filenameEl = document.getElementById('veExpectedFilename');
+            if (filenameEl) {
+                filenameEl.textContent = previewFilename;
+            }
         }
 
         function startVePreviewAnimation() {
@@ -6173,7 +6458,7 @@ ${mappingsYaml}  m_Events: []
                         const iw = img.naturalWidth || cw, ih = img.naturalHeight || ch;
                         const scale = Math.min(cw / iw, ch / ih);
                         const dw = iw * scale, dh = ih * scale;
-                        const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+                        const dx = (cw - dw) / 2, dy = (ch - dw) / 2;
                         ctx.drawImage(img, dx, dy, dw, dh);
                     };
                     img.src = imgDataUrl;
@@ -6217,11 +6502,21 @@ ${mappingsYaml}  m_Events: []
             const activeState = projectConfig.states[activeStateIndex];
             if (!activeState) return;
 
+            // Update state name if edited
+            const nameInput = document.getElementById('veStateNameInput');
+            if (nameInput) {
+                const newName = nameInput.value.trim();
+                if (newName) {
+                    activeState.name = newName;
+                }
+            }
+
             activeState.customFrames = [...veSelectedFrames];
 
             closeManualFrameVisualEditor();
             onStateDataChanged(activeStateIndex);
-            showToastNotification("수동 프레임 비주얼 편집 내용이 적용되었습니다!");
+            renderPromptStates();
+            showToastNotification(`'${activeState.name}' 프레임 및 상태 설정이 저장되었습니다!`);
         }
 
         function onStateDataChanged(index) {
@@ -6390,9 +6685,9 @@ ${mappingsYaml}  m_Events: []
                     loadingText.textContent = `[${i + 1}/${projectConfig.states.length}] '${state.name}' 시트 추출 중...`;
 
                     // 1. Programmatically render spritesheet Blob
-                    const sheetBlob = await getSpritesheetBlobForState(i);
-                    if (sheetBlob) {
-                        zip.file(`${charId}_${cleanStateName}_spritesheet.png`, sheetBlob);
+                    const sheetResult = await getSpritesheetBlobForState(i);
+                    if (sheetResult && sheetResult.blob) {
+                        zip.file(`${charId}_${cleanStateName}_spritesheet_${sheetResult.frameWidth}_${sheetResult.frameHeight}_${sheetResult.frameCount}.png`, sheetResult.blob);
                     }
 
                     // 2. Programmatically slice audio segment WAV
@@ -6484,7 +6779,14 @@ ${mappingsYaml}  m_Events: []
 
             return new Promise((resolve) => {
                 sheetCanvas.toBlob((blob) => {
-                    resolve(blob);
+                    resolve({
+                        blob: blob,
+                        textureWidth: sheetCanvas.width,
+                        textureHeight: sheetCanvas.height,
+                        frameWidth: fWidth,
+                        frameHeight: fHeight,
+                        frameCount: framesList.length
+                    });
                 }, 'image/png');
             });
         }
