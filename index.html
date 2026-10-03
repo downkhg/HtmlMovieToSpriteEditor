@@ -2,7 +2,7 @@
 프롬프터: downkhg@gmail.com
 모델: gemini
 에이전트: Antigravity
-마지막수정사항: 프레임 수동 편집창에서 상태(파일) 이름 직접 수정 기능 및 스토리보드 목록에서 상태 카드를 좌우 이동(◀/▶) 또는 드래그 앤 드롭으로 자유롭게 순서 변경할 수 있는 기능 추가
+마지막수정사항: 상태별 독립 크롭/해상도/CSV 식별 ID v3 데이터 모델 지원, CSV 메타데이터 입출력 및 전체 ZIP 압축 다운로드 시 {characterId}_states.csv 자동 포함 기능 구현
 -->
 <!DOCTYPE html>
 <html lang="ko">
@@ -1414,8 +1414,11 @@
             <!-- Global Actions -->
             <div class="header-actions">
                 <input type="file" id="projectFileInput" accept=".json" style="display: none;">
+                <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
                 <button class="btn-outline btn-icon" onclick="document.getElementById('projectFileInput').click()" title="📂 프로젝트/설정 파일 불러오기 (.json)">📂 로드</button>
                 <button class="btn-success btn-icon" onclick="saveProjectJSON()" title="💾 프로젝트 설정 파일 저장 (.json)">💾 저장</button>
+                <button class="btn-outline btn-icon" onclick="document.getElementById('csvFileInput').click()" title="📊 상태별 메타데이터 CSV 불러오기 (.csv)" style="border-color: var(--info-color); color: var(--info-color);">📊 CSV 로드</button>
+                <button class="btn-outline btn-icon" onclick="downloadProjectCSV()" title="📊 상태별 메타데이터 CSV 파일 저장 (.csv)" style="border-color: var(--success-color); color: var(--success-color);">📊 CSV 저장</button>
             </div>
         </div>
     </header>
@@ -2026,8 +2029,14 @@
 
                     <button onclick="downloadAllResourcesZip()" class="btn-success btn-icon"
                         style="background-color: var(--info-color); border: none; font-weight:bold; width: 100%;"
-                        title="📦 모든 스프라이트, 애니메이션, 사운드, JSON 설정을 하나의 ZIP으로 압축 다운로드">
-                        📦 전체 ZIP 다운로드
+                        title="📦 모든 스프라이트, 애니메이션, 사운드, JSON 및 상태별 CSV 설정을 하나의 ZIP으로 압축 다운로드">
+                        📦 전체 ZIP 다운로드 (CSV 포함)
+                    </button>
+
+                    <button onclick="downloadProjectCSV()" class="btn-outline btn-icon"
+                        style="border-color: var(--success-color); color: var(--success-color); width: 100%; margin-top: 4px;"
+                        title="📊 상태별 크롭, 오프셋, 프레임 해상도 메타데이터 CSV 파일 다운로드 (.csv)">
+                        📊 메타데이터 CSV 다운로드 (.csv)
                     </button>
 
                     <hr style="border-color: var(--border-color); margin: 4px 0;">
@@ -2293,6 +2302,12 @@
                                     style="width: 100%; height: 26px; padding: 2px 6px; font-size: 0.85em; font-weight: bold; color: var(--accent-color); background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 4px;"
                                     placeholder="상태명 (예: idle, walk)">
                             </div>
+                            <span>상태 ID (CSV):</span>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <input type="number" id="veStateIdInput" min="1" step="1"
+                                    style="width: 100%; height: 26px; padding: 2px 6px; font-size: 0.85em; font-weight: bold; color: var(--accent-color); background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 4px;"
+                                    placeholder="식별 ID (숫자)">
+                            </div>
                             <span>전체 구간 프레임:</span> <span id="veTotalRangeFrames"
                                 style="color:var(--text-color); font-weight:bold; text-align:right;">0</span>
                             <span>선택된 스프라이트:</span> <span id="veSelectedSpritesCount"
@@ -2500,9 +2515,67 @@
             });
         }
 
-        // 기본 활성 버전 지정 (필요 시 normalizeConfigStatesV1 또는 normalizeConfigStatesV2로 변경 가능)
+        // [신버전 v3] 상태별 독립 크롭(crop), 해상도(frameWidth/Height), 고유ID(id) 및 customFrames 지원 정규화 함수
+        function normalizeConfigStatesV3() {
+            if (!projectConfig.crop) {
+                projectConfig.crop = { x: 0.5, y: 0.5, width: 1.0, height: 1.0 };
+            }
+            if (projectConfig.crop.size !== undefined && projectConfig.crop.width === undefined) {
+                projectConfig.crop.width = projectConfig.crop.size;
+                projectConfig.crop.height = projectConfig.crop.size;
+            }
+            if (projectConfig.crop.width === undefined) projectConfig.crop.width = 1.0;
+            if (projectConfig.crop.height === undefined) projectConfig.crop.height = 1.0;
+
+            const defaultCrop = {
+                x: projectConfig.crop.x ?? 0.5,
+                y: projectConfig.crop.y ?? 0.5,
+                width: projectConfig.crop.width ?? 1.0,
+                height: projectConfig.crop.height ?? 1.0
+            };
+
+            const curFw = parseInt(document.getElementById('frameWidth')?.value) || 128;
+            const curFh = parseInt(document.getElementById('frameHeight')?.value) || 128;
+
+            projectConfig.states = projectConfig.states.map((state, idx) => {
+                const name = state.name || `state_${idx}`;
+                const validCustomFrames = (Array.isArray(state.customFrames) && state.customFrames.length > 0)
+                    ? state.customFrames.map(f => parseInt(f)).filter(f => !isNaN(f)).sort((a, b) => a - b)
+                    : null;
+
+                // 상태별 독립 크롭 정보 정규화 (없으면 루트 crop 상속)
+                let sCrop = state.crop ? { ...state.crop } : { ...defaultCrop };
+                if (sCrop.size !== undefined && sCrop.width === undefined) {
+                    sCrop.width = sCrop.size;
+                    sCrop.height = sCrop.size;
+                }
+                sCrop.x = sCrop.x !== undefined ? parseFloat(sCrop.x) : defaultCrop.x;
+                sCrop.y = sCrop.y !== undefined ? parseFloat(sCrop.y) : defaultCrop.y;
+                sCrop.width = sCrop.width !== undefined ? parseFloat(sCrop.width) : defaultCrop.width;
+                sCrop.height = sCrop.height !== undefined ? parseFloat(sCrop.height) : defaultCrop.height;
+
+                return {
+                    id: state.id !== undefined && state.id !== null ? parseInt(state.id) : (idx + 1),
+                    name: name.trim().toLowerCase(),
+                    startFrame: state.startFrame !== undefined ? parseInt(state.startFrame) : 0,
+                    endFrame: state.endFrame !== undefined ? parseInt(state.endFrame) : 30,
+                    frameSkip: state.frameSkip !== undefined ? Math.max(1, parseInt(state.frameSkip)) : 1,
+                    loop: state.loop !== undefined ? !!state.loop : true,
+                    action: state.action || `${name} action motion`,
+                    status: state.status || "stable",
+                    statePrompt: state.statePrompt || `${state.action || name}, dynamic motion, focused`,
+                    locked: state.locked !== undefined ? !!state.locked : true,
+                    customFrames: validCustomFrames,
+                    crop: sCrop,
+                    frameWidth: state.frameWidth !== undefined ? parseFloat(state.frameWidth) : curFw,
+                    frameHeight: state.frameHeight !== undefined ? parseFloat(state.frameHeight) : curFh
+                };
+            });
+        }
+
+        // 기본 활성 버전 지정 (필요 시 normalizeConfigStatesV1, V2, V3로 변경 가능)
         function normalizeConfigStates() {
-            normalizeConfigStatesV2();
+            normalizeConfigStatesV3();
         }
 
         function syncUIInputs() {
@@ -3531,6 +3604,7 @@
 
             setupTripleControl('cropWidth', () => projectConfig.crop, 'width', 100, 10, 100, false,
                 () => {
+                    syncActiveStateCrop();
                     getCropRect();
                     syncUIInputs();
                     updateVideoCropOverlay();
@@ -3545,6 +3619,7 @@
 
             setupTripleControl('cropHeight', () => projectConfig.crop, 'height', 100, 10, 100, false,
                 () => {
+                    syncActiveStateCrop();
                     getCropRect();
                     syncUIInputs();
                     updateVideoCropOverlay();
@@ -3559,6 +3634,7 @@
 
             setupTripleControl('cropX', () => projectConfig.crop, 'x', 100, 0, 100, false,
                 () => {
+                    syncActiveStateCrop();
                     getCropRect();
                     syncUIInputs();
                     updateVideoCropOverlay();
@@ -3572,6 +3648,7 @@
 
             setupTripleControl('cropY', () => projectConfig.crop, 'y', 100, 0, 100, false,
                 () => {
+                    syncActiveStateCrop();
                     getCropRect();
                     syncUIInputs();
                     updateVideoCropOverlay();
@@ -3584,6 +3661,10 @@
             );
 
             document.getElementById('projectFileInput').addEventListener('change', loadProjectJSON);
+            const csvInputEl = document.getElementById('csvFileInput');
+            if (csvInputEl) {
+                csvInputEl.addEventListener('change', loadProjectCSV);
+            }
 
             activeStateSelect.addEventListener('change', (e) => {
                 activeStateIndex = parseInt(e.target.value);
@@ -3972,13 +4053,120 @@
             reader.readAsText(file);
         }
 
-        // 기본 활성 버전 지정 (필요 시 loadProjectJSONV1 또는 loadProjectJSONV2로 변경 가능)
+        // [신버전 v3] 상태별 독립 크롭/해상도/ID 및 CSV 호환 지원 JSON 로드 함수
+        function loadProjectJSONV3(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                try {
+                    const loadedConfig = JSON.parse(event.target.result);
+                    if (loadedConfig.characterId) {
+                        const isLegacyPromptOnly = loadedConfig.states && loadedConfig.states.some(s => s.startFrame === undefined || s.endFrame === undefined);
+
+                        if (isLegacyPromptOnly) {
+                            const incomingStates = loadedConfig.states || [];
+                            const updatedStates = [];
+                            incomingStates.forEach((incomingState, idx) => {
+                                const existing = projectConfig.states.find(s => s.name === incomingState.name);
+                                if (existing) {
+                                    updatedStates.push({
+                                        ...incomingState,
+                                        id: existing.id ?? (idx + 1),
+                                        startFrame: existing.startFrame,
+                                        endFrame: existing.endFrame,
+                                        customFrames: existing.customFrames ? [...existing.customFrames] : (incomingState.customFrames ? [...incomingState.customFrames] : null),
+                                        crop: existing.crop ? { ...existing.crop } : (incomingState.crop ? { ...incomingState.crop } : { ...projectConfig.crop }),
+                                        frameWidth: existing.frameWidth ?? incomingState.frameWidth,
+                                        frameHeight: existing.frameHeight ?? incomingState.frameHeight
+                                    });
+                                } else {
+                                    let lastEndFrame = -1;
+                                    projectConfig.states.forEach(s => {
+                                        if (s.endFrame > lastEndFrame) lastEndFrame = s.endFrame;
+                                    });
+                                    updatedStates.forEach(s => {
+                                        if (s.endFrame > lastEndFrame) lastEndFrame = s.endFrame;
+                                    });
+
+                                    const frameDuration = projectConfig.fps || 30;
+                                    const newStart = lastEndFrame + 1;
+                                    const newEnd = newStart + frameDuration - 1;
+
+                                    updatedStates.push({
+                                        ...incomingState,
+                                        id: idx + 1,
+                                        startFrame: Math.max(0, newStart),
+                                        endFrame: Math.max(0, newEnd),
+                                        customFrames: incomingState.customFrames ? [...incomingState.customFrames] : null,
+                                        crop: incomingState.crop ? { ...incomingState.crop } : { ...projectConfig.crop },
+                                        frameWidth: incomingState.frameWidth,
+                                        frameHeight: incomingState.frameHeight
+                                    });
+                                }
+                            });
+
+                            projectConfig.characterId = loadedConfig.characterId;
+                            if (loadedConfig.chromaColor) projectConfig.chromaKey.color = loadedConfig.chromaColor;
+                            if (loadedConfig.tolerance !== undefined) projectConfig.chromaKey.tolerance = parseInt(loadedConfig.tolerance);
+                            if (loadedConfig.softEdge !== undefined) projectConfig.chromaKey.softEdge = parseFloat(loadedConfig.softEdge);
+                            projectConfig.states = updatedStates;
+
+                            if (loadedConfig.masterPrompt) projectConfig.masterPrompt = loadedConfig.masterPrompt;
+                            if (loadedConfig.audioSpecifications) projectConfig.audioSpecifications = loadedConfig.audioSpecifications;
+                            if (loadedConfig.cclNoise !== undefined) projectConfig.chromaKey.cclNoise = loadedConfig.cclNoise;
+
+                            showToastNotification("프롬프트 설정 정보를 성공적으로 연동했습니다!");
+                        } else {
+                            projectConfig = {
+                                ...projectConfig,
+                                ...loadedConfig
+                            };
+                            showToastNotification("프로젝트 설정을 성공적으로 불렀습니다!");
+                        }
+
+                        if (!projectConfig.crop) {
+                            projectConfig.crop = { x: 0.5, y: 0.5, width: 1.0, height: 1.0 };
+                        }
+                        if (projectConfig.crop.size !== undefined && projectConfig.crop.width === undefined) {
+                            projectConfig.crop.width = projectConfig.crop.size;
+                            projectConfig.crop.height = projectConfig.crop.size;
+                        }
+                        if (projectConfig.crop.width === undefined) projectConfig.crop.width = 1.0;
+                        if (projectConfig.crop.height === undefined) projectConfig.crop.height = 1.0;
+
+                        normalizeConfigStatesV3();
+                        activeStateIndex = 0;
+                        syncUIInputs();
+                        recalculateTotalFrames();
+                        updateTimelineRuler();
+                        renderStates();
+                        updateTimelineHandles();
+                        updateJsonPreview();
+                        invalidateFrameCache();
+                        triggerBatchExtract();
+                    } else {
+                        alert("올바르지 않은 JSON 설정 파일 구조입니다.");
+                    }
+                } catch (err) {
+                    alert("JSON 설정 로드 실패: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 기본 활성 버전 지정 (필요 시 loadProjectJSONV1, V2, V3로 변경 가능)
         function loadProjectJSON(e) {
-            loadProjectJSONV2(e);
+            loadProjectJSONV3(e);
         }
 
         // --- Save Project configuration ---
         function saveProjectJSON() {
+            // Keep active state crop in sync with root crop before saving
+            syncActiveStateCrop();
+            projectConfig.schemaVersion = 3;
+
             const dataStr = JSON.stringify(projectConfig, null, 2);
             const blob = new Blob([dataStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
@@ -3991,10 +4179,186 @@
             URL.revokeObjectURL(url);
         }
 
+        // --- CSV Generator, Exporter & Importer ---
+        function generateProjectCSV() {
+            syncActiveStateCrop();
+            // 헤더 형식: id,status,offset_x,offset_y,width_rate,height_rate,width,height,frame count
+            const headers = ["id", "status", "offset_x", "offset_y", "width_rate", "height_rate", "width", "height", "frame count"];
+            const rows = [headers.join(",")];
+
+            projectConfig.states.forEach((state, idx) => {
+                const id = state.id !== undefined && state.id !== null ? state.id : (idx + 1);
+                const status = state.name;
+                const crop = state.crop || projectConfig.crop || { x: 0.5, y: 0.5, width: 1.0, height: 1.0 };
+                
+                const offset_x = +(crop.x ?? 0.5).toFixed(4);
+                const offset_y = +(crop.y ?? 0.5).toFixed(4);
+                const width_rate = +(crop.width ?? 1.0).toFixed(4);
+                const height_rate = +(crop.height ?? 1.0).toFixed(4);
+
+                let fw = state.frameWidth;
+                let fh = state.frameHeight;
+                if (!fw || !fh) {
+                    if (videoWidth && videoHeight) {
+                        fw = Math.round(videoWidth * width_rate * 10) / 10;
+                        fh = Math.round(videoHeight * height_rate * 10) / 10;
+                    } else {
+                        fw = parseInt(document.getElementById('frameWidth')?.value) || 128;
+                        fh = parseInt(document.getElementById('frameHeight')?.value) || 128;
+                    }
+                }
+
+                const framesList = getStateFramesList(state);
+                const frameCount = framesList.length;
+
+                rows.push([
+                    id,
+                    status,
+                    offset_x,
+                    offset_y,
+                    width_rate,
+                    height_rate,
+                    fw,
+                    fh,
+                    frameCount
+                ].join(","));
+            });
+
+            return rows.join("\r\n");
+        }
+
+        function downloadProjectCSV() {
+            const csvContent = generateProjectCSV();
+            const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" }); // UTF-8 BOM
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${projectConfig.characterId}_states.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToastNotification(`'${projectConfig.characterId}_states.csv' 메타데이터 파일이 저장되었습니다.`);
+        }
+
+        function loadProjectCSV(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                try {
+                    const text = event.target.result;
+                    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+                    if (lines.length < 2) {
+                        alert("CSV 파일 내용이 비어 있거나 올바르지 않습니다.");
+                        return;
+                    }
+
+                    // Parse header row
+                    const rawHeaders = lines[0].split(',').map(h => h.trim().toLowerCase());
+                    const idCol = rawHeaders.indexOf('id');
+                    const statusCol = rawHeaders.indexOf('status');
+                    const oxCol = rawHeaders.indexOf('offset_x');
+                    const oyCol = rawHeaders.indexOf('offset_y');
+                    const wrCol = rawHeaders.indexOf('width_rate');
+                    const hrCol = rawHeaders.indexOf('height_rate');
+                    const wCol = rawHeaders.indexOf('width');
+                    const hCol = rawHeaders.indexOf('height');
+
+                    if (statusCol === -1) {
+                        alert("CSV 파일에 'status' 열이 반드시 포함되어야 합니다.");
+                        return;
+                    }
+
+                    let matchCount = 0;
+                    for (let i = 1; i < lines.length; i++) {
+                        const parts = lines[i].split(',').map(p => p.trim());
+                        if (parts.length <= statusCol) continue;
+
+                        const statusName = parts[statusCol].toLowerCase();
+                        if (!statusName) continue;
+
+                        // Find matching state in projectConfig
+                        let state = projectConfig.states.find(s => s.name === statusName);
+                        // Also try match by ID if given
+                        if (!state && idCol !== -1 && parts[idCol]) {
+                            const parsedId = parseInt(parts[idCol]);
+                            state = projectConfig.states.find(s => s.id === parsedId);
+                        }
+
+                        if (state) {
+                            matchCount++;
+                            if (idCol !== -1 && parts[idCol] && !isNaN(parseInt(parts[idCol]))) {
+                                state.id = parseInt(parts[idCol]);
+                            }
+
+                            if (!state.crop) state.crop = { ...projectConfig.crop };
+
+                            if (oxCol !== -1 && parts[oxCol] && !isNaN(parseFloat(parts[oxCol]))) {
+                                state.crop.x = Math.max(0, Math.min(1, parseFloat(parts[oxCol])));
+                            }
+                            if (oyCol !== -1 && parts[oyCol] && !isNaN(parseFloat(parts[oyCol]))) {
+                                state.crop.y = Math.max(0, Math.min(1, parseFloat(parts[oyCol])));
+                            }
+                            if (wrCol !== -1 && parts[wrCol] && !isNaN(parseFloat(parts[wrCol]))) {
+                                state.crop.width = Math.max(0.05, Math.min(1, parseFloat(parts[wrCol])));
+                            }
+                            if (hrCol !== -1 && parts[hrCol] && !isNaN(parseFloat(parts[hrCol]))) {
+                                state.crop.height = Math.max(0.05, Math.min(1, parseFloat(parts[hrCol])));
+                            }
+
+                            if (wCol !== -1 && parts[wCol] && !isNaN(parseFloat(parts[wCol]))) {
+                                state.frameWidth = parseFloat(parts[wCol]);
+                            }
+                            if (hCol !== -1 && parts[hCol] && !isNaN(parseFloat(parts[hCol]))) {
+                                state.frameHeight = parseFloat(parts[hCol]);
+                            }
+                        }
+                    }
+
+                    if (matchCount === 0) {
+                        alert("CSV 파일의 상태 이름(status)과 일치하는 프로젝트 상태를 찾지 못했습니다.");
+                        return;
+                    }
+
+                    // Sync active state UI
+                    const activeState = projectConfig.states[activeStateIndex];
+                    if (activeState && activeState.crop) {
+                        projectConfig.crop = { ...activeState.crop };
+                    }
+                    syncUIInputs();
+                    updateVideoCropOverlay();
+                    renderStates();
+                    updateJsonPreview();
+                    invalidateFrameCache();
+                    triggerBatchExtract();
+
+                    showToastNotification(`CSV로부터 ${matchCount}개 상태의 크롭 및 메타데이터 설정을 성공적으로 동기화했습니다!`);
+                } catch (err) {
+                    alert("CSV 불러오기 실패: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Synchronize root crop to active state crop ---
+        function syncActiveStateCrop() {
+            const curState = projectConfig.states[activeStateIndex];
+            if (curState) {
+                if (!curState.crop) curState.crop = {};
+                curState.crop.x = projectConfig.crop.x;
+                curState.crop.y = projectConfig.crop.y;
+                curState.crop.width = projectConfig.crop.width;
+                curState.crop.height = projectConfig.crop.height;
+            }
+        }
+
         // --- Crop Anchor Quick-Set (9-point grid) ---
         function setCropAnchor(xPct, yPct) {
             projectConfig.crop.x = Math.max(0, Math.min(1, xPct / 100));
             projectConfig.crop.y = Math.max(0, Math.min(1, yPct / 100));
+            syncActiveStateCrop();
             getCropRect();
             syncUIInputs();
             updateVideoCropOverlay();
@@ -4020,9 +4384,8 @@
                 projectConfig.crop.height = squareSide / vh;
             } else if (preset === '16:9') {
                 // 16:9 rectangle. Maximize to fit within video.
-                // Try full width first, calculate height from ratio.
                 let w = 1.0;
-                let h = w * (vw / vh) * (9 / 16); // height fraction in video-height units
+                let h = w * (vw / vh) * (9 / 16);
                 if (h > 1.0) { h = 1.0; w = h * (vh / vw) * (16 / 9); }
                 projectConfig.crop.width  = Math.min(1.0, w);
                 projectConfig.crop.height = Math.min(1.0, h);
@@ -4039,6 +4402,7 @@
                 projectConfig.crop.width  = Math.min(1.0, w);
                 projectConfig.crop.height = Math.min(1.0, h);
             }
+            syncActiveStateCrop();
             getCropRect();
             syncUIInputs();
             updateVideoCropOverlay();
@@ -4189,6 +4553,7 @@
                 projectConfig.crop.x = Math.max(0.0, Math.min(1.0, centerX / videoWidth));
                 projectConfig.crop.y = Math.max(0.0, Math.min(1.0, centerY / videoHeight));
 
+                syncActiveStateCrop();
                 getCropRect();
                 syncUIInputs();
                 updateVideoCropOverlay();
@@ -4329,6 +4694,11 @@
 
             wInput.value = targetW;
             hInput.value = targetH;
+            const curState = projectConfig.states[activeStateIndex];
+            if (curState) {
+                curState.frameWidth = targetW;
+                curState.frameHeight = targetH;
+            }
             updatePresetButtonsUI();
         }
 
@@ -4336,35 +4706,62 @@
             // 수동 입력 모드일 때만 실행 (비율 자동 해제 상태)
             const chk = document.getElementById('autoFrameAspectMatch');
             if (chk && chk.checked) {
-                // 비율 자동 체크 상태에서는 readonly로 보호되지만 추가 방어 처리
                 return;
             }
+
+            const wInput = document.getElementById('frameWidth');
+            const hInput = document.getElementById('frameHeight');
+            const curState = projectConfig.states[activeStateIndex];
+            if (curState && wInput && hInput) {
+                const w = parseFloat(wInput.value);
+                const h = parseFloat(hInput.value);
+                if (!isNaN(w) && w > 0) curState.frameWidth = w;
+                if (!isNaN(h) && h > 0) curState.frameHeight = h;
+            }
+            updateJsonPreview();
         }
 
         // --- Get crop rectangle coordinates in video pixel space ---
-        function getCropRect() {
+        function getCropRect(stateOrIndex = null) {
             if (!videoWidth || !videoHeight) {
                 return { sx: 0, sy: 0, sw: 256, sh: 256 };
             }
 
-            // Support both legacy 'size' and new separate width/height
-            const cropW = projectConfig.crop.width ?? projectConfig.crop.size ?? 1.0;
-            const cropH = projectConfig.crop.height ?? projectConfig.crop.size ?? 1.0;
+            let targetState = null;
+            if (typeof stateOrIndex === 'number') {
+                targetState = projectConfig.states[stateOrIndex];
+            } else if (stateOrIndex && typeof stateOrIndex === 'object') {
+                targetState = stateOrIndex;
+            } else {
+                targetState = projectConfig.states[activeStateIndex];
+            }
+
+            const cropSource = targetState?.crop || projectConfig.crop || { x: 0.5, y: 0.5, width: 1.0, height: 1.0 };
+            const cropW = cropSource.width ?? cropSource.size ?? 1.0;
+            const cropH = cropSource.height ?? cropSource.size ?? 1.0;
 
             const sw = Math.round(videoWidth * cropW);
             const sh = Math.round(videoHeight * cropH);
             const halfW = Math.round(sw / 2);
             const halfH = Math.round(sh / 2);
 
-            let cx = Math.round(videoWidth * projectConfig.crop.x);
-            let cy = Math.round(videoHeight * projectConfig.crop.y);
+            let cx = Math.round(videoWidth * (cropSource.x ?? 0.5));
+            let cy = Math.round(videoHeight * (cropSource.y ?? 0.5));
 
             // Clamp so the crop box stays within video bounds
             cx = Math.max(halfW, Math.min(videoWidth - halfW, cx));
             cy = Math.max(halfH, Math.min(videoHeight - halfH, cy));
 
-            projectConfig.crop.x = cx / videoWidth;
-            projectConfig.crop.y = cy / videoHeight;
+            cropSource.x = cx / videoWidth;
+            cropSource.y = cy / videoHeight;
+
+            // Keep root crop in sync with active state
+            if (!stateOrIndex || targetState === projectConfig.states[activeStateIndex]) {
+                projectConfig.crop.x = cropSource.x;
+                projectConfig.crop.y = cropSource.y;
+                projectConfig.crop.width = cropW;
+                projectConfig.crop.height = cropH;
+            }
 
             return { sx: cx - halfW, sy: cy - halfH, sw, sh };
         }
@@ -4485,6 +4882,13 @@
                 projectConfig.crop.x = startCropX + dx / displayWidth;
                 projectConfig.crop.y = startCropY + dy / displayHeight;
 
+                const curState = projectConfig.states[activeStateIndex];
+                if (curState) {
+                    if (!curState.crop) curState.crop = { ...projectConfig.crop };
+                    curState.crop.x = projectConfig.crop.x;
+                    curState.crop.y = projectConfig.crop.y;
+                }
+
                 getCropRect();
                 syncUIInputs();
                 updateVideoCropOverlay();
@@ -4497,8 +4901,17 @@
                 e.preventDefault();
 
                 const step = e.deltaY < 0 ? 0.05 : -0.05;
-                projectConfig.crop.width = Math.max(0.1, Math.min(1.0, (projectConfig.crop.width ?? 1.0) + step));
-                projectConfig.crop.height = Math.max(0.1, Math.min(1.0, (projectConfig.crop.height ?? 1.0) + step));
+                const newW = Math.max(0.1, Math.min(1.0, (projectConfig.crop.width ?? 1.0) + step));
+                const newH = Math.max(0.1, Math.min(1.0, (projectConfig.crop.height ?? 1.0) + step));
+                projectConfig.crop.width = newW;
+                projectConfig.crop.height = newH;
+
+                const curState = projectConfig.states[activeStateIndex];
+                if (curState) {
+                    if (!curState.crop) curState.crop = { ...projectConfig.crop };
+                    curState.crop.width = newW;
+                    curState.crop.height = newH;
+                }
 
                 getCropRect();
                 syncUIInputs();
@@ -4573,7 +4986,7 @@
             const imgUrls = [];
             const tempCanvas = document.getElementById('processingCanvas');
             const ctx = tempCanvas.getContext('2d');
-            const { sx, sy, sw, sh } = getCropRect();
+            const { sx, sy, sw, sh } = getCropRect(state);
             tempCanvas.width = sw;
             tempCanvas.height = sh;
 
@@ -4935,9 +5348,15 @@
                 const isFirst = index === 0;
                 const isLast = index === projectConfig.states.length - 1;
 
+                const displayId = state.id !== undefined && state.id !== null ? state.id : (index + 1);
+                const resText = state.frameWidth && state.frameHeight 
+                    ? `${Math.round(state.frameWidth)}×${Math.round(state.frameHeight)}` 
+                    : (document.getElementById('frameWidth')?.value ? `${document.getElementById('frameWidth').value}×${document.getElementById('frameHeight').value}` : '자동');
+
                 card.innerHTML = `
                     <div class="state-card-header">
-                        <div style="display: flex; align-items: center; gap: 4px; overflow: hidden; max-width: 120px;">
+                        <div style="display: flex; align-items: center; gap: 4px; overflow: hidden; max-width: 130px;">
+                            <span style="font-size:0.7em; background:var(--panel-accent); color:var(--accent-color); padding:1px 4px; border-radius:3px; border:1px solid var(--border-color); font-weight:bold;">#${displayId}</span>
                             <span class="state-card-title" title="${state.name}">${state.name}</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 2px;">
@@ -4952,8 +5371,8 @@
                     <div class="state-card-details">
                         <span class="label">프레임:</span>
                         <span class="value">${frameCountHTML}</span>
-                        <span class="label">시간:</span>
-                        <span class="value">${formatTime(state.startFrame / projectConfig.fps)} ~ ${formatTime(state.endFrame / projectConfig.fps)}</span>
+                        <span class="label">크기:</span>
+                        <span class="value">${resText}</span>
                     </div>
                 `;
 
@@ -5399,8 +5818,29 @@
             updateTimelineHandles();
 
             const activeState = projectConfig.states[activeStateIndex];
-            if (activeState && previewVideo.duration) {
-                previewVideo.currentTime = activeState.startFrame / projectConfig.fps;
+            if (activeState) {
+                // 1. 상태별 crop 복원 및 UI 동기화
+                if (!activeState.crop) {
+                    activeState.crop = { ...projectConfig.crop };
+                } else {
+                    projectConfig.crop.x = activeState.crop.x ?? 0.5;
+                    projectConfig.crop.y = activeState.crop.y ?? 0.5;
+                    projectConfig.crop.width = activeState.crop.width ?? 1.0;
+                    projectConfig.crop.height = activeState.crop.height ?? 1.0;
+                }
+                syncUIInputs();
+                updateVideoCropOverlay();
+
+                // 2. 상태별 frameWidth, frameHeight 복원
+                const wInput = document.getElementById('frameWidth');
+                const hInput = document.getElementById('frameHeight');
+                if (activeState.frameWidth && wInput) wInput.value = activeState.frameWidth;
+                if (activeState.frameHeight && hInput) hInput.value = activeState.frameHeight;
+
+                // 3. 비디오 재생 위치 동기화
+                if (previewVideo.duration) {
+                    previewVideo.currentTime = activeState.startFrame / projectConfig.fps;
+                }
             }
 
             const cards = storyboardContainer.querySelectorAll('.state-storyboard-card');
@@ -6213,6 +6653,10 @@ ${mappingsYaml}  m_Events: []
             if (nameInput) {
                 nameInput.value = activeState.name;
             }
+            const idInput = document.getElementById('veStateIdInput');
+            if (idInput) {
+                idInput.value = activeState.id !== undefined && activeState.id !== null ? activeState.id : (activeStateIndex + 1);
+            }
 
             // Set selections
             veSelectedFrames = getStateFramesList(activeState);
@@ -6284,7 +6728,7 @@ ${mappingsYaml}  m_Events: []
 
             const tempCanvas = document.getElementById('processingCanvas');
             const ctx = tempCanvas.getContext('2d');
-            const { sx, sy, sw, sh } = getCropRect();
+            const { sx, sy, sw, sh } = getCropRect(state);
             tempCanvas.width = sw;
             tempCanvas.height = sh;
 
@@ -6511,6 +6955,15 @@ ${mappingsYaml}  m_Events: []
                 }
             }
 
+            // Update state ID if edited
+            const idInput = document.getElementById('veStateIdInput');
+            if (idInput && idInput.value !== '') {
+                const parsedId = parseInt(idInput.value);
+                if (!isNaN(parsedId)) {
+                    activeState.id = parsedId;
+                }
+            }
+
             activeState.customFrames = [...veSelectedFrames];
 
             closeManualFrameVisualEditor();
@@ -6677,6 +7130,10 @@ ${mappingsYaml}  m_Events: []
                 const projectJson = JSON.stringify(projectConfig, null, 2);
                 zip.file(`${charId}_project.json`, projectJson);
 
+                // Add animation states CSV (사용자 요청: 압축파일에 프로젝트 CSV 포함)
+                const csvContent = generateProjectCSV();
+                zip.file(`${charId}_states.csv`, csvContent);
+
                 // Export files for each state
                 for (let i = 0; i < projectConfig.states.length; i++) {
                     const state = projectConfig.states[i];
@@ -6717,7 +7174,7 @@ ${mappingsYaml}  m_Events: []
                 URL.revokeObjectURL(url);
 
                 loadingScreen.style.display = 'none';
-                showToastNotification("전체 리소스 일괄 압축 다운로드 완료!");
+                showToastNotification("전체 리소스 일괄 압축 다운로드 완료! (프로젝트 CSV 메타데이터 포함)");
             } catch (err) {
                 loadingScreen.style.display = 'none';
                 alert("리소스 압축 다운로드 실패: " + err.message);
@@ -6730,8 +7187,8 @@ ${mappingsYaml}  m_Events: []
             if (!state || !videoBlobUrl) return null;
 
             const colCount = parseInt(document.getElementById('spriteCols').value) || 8;
-            const fWidth = parseInt(document.getElementById('frameWidth').value) || 128;
-            const fHeight = parseInt(document.getElementById('frameHeight').value) || 128;
+            const fWidth = Math.round(state.frameWidth) || parseInt(document.getElementById('frameWidth').value) || 128;
+            const fHeight = Math.round(state.frameHeight) || parseInt(document.getElementById('frameHeight').value) || 128;
 
             const framesList = getStateFramesList(state);
             if (framesList.length === 0) return null;
@@ -6756,7 +7213,7 @@ ${mappingsYaml}  m_Events: []
 
             const rendererCanvas = document.getElementById('processingCanvas');
             const rendererCtx = rendererCanvas.getContext('2d');
-            const { sx, sy, sw, sh } = getCropRect();
+            const { sx, sy, sw, sh } = getCropRect(state);
             rendererCanvas.width = sw;
             rendererCanvas.height = sh;
 
